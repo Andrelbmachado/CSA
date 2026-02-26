@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhes do Produto — CSA</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/icons.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+</head>
+<body>
+  <div id="app-header"></div>
+
+  <main class="product-detail page-transition">
+    <div class="container">
+      <div class="breadcrumb" id="breadcrumb" style="color:var(--text-muted);margin-bottom:var(--space-6);"></div>
+      <div class="product-detail-grid" id="product-detail-grid"></div>
+      <div class="product-tabs" id="product-tabs"></div>
+
+      <!-- Related Products -->
+      <section style="margin-top:var(--space-16);">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Produtos Relacionados</h2>
+            <p class="section-subtitle" style="margin-bottom:0;">Você também pode gostar</p>
+          </div>
+          <a href="marketplace.html" class="see-all">Ver todos <span id="see-all-icon"></span></a>
+        </div>
+        <div class="grid grid-4" id="related-grid"></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="app-footer"></div>
+
+  <script src="js/icons.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('app-header').innerHTML = renderHeader('marketplace');
+    document.getElementById('app-footer').innerHTML = renderFooter();
+    document.getElementById('see-all-icon').innerHTML = Icons.chevronRight(16);
+    initNotifications();
+
+    const params = new URLSearchParams(window.location.search);
+    const productId = parseInt(params.get('id')) || 1;
+    const product = window.PRODUCTS.find(p => p.id === productId) || window.PRODUCTS[0];
+    let qty = 1;
+
+    document.title = `${product.name} — CSA`;
+
+    // Breadcrumb
+    document.getElementById('breadcrumb').innerHTML = `
+      <a href="index.html">Início</a>
+      <span class="sep">/</span>
+      <a href="marketplace.html">Marketplace</a>
+      <span class="sep">/</span>
+      <span>${product.name}</span>
+    `;
+
+    // Product detail
+    document.getElementById('product-detail-grid').innerHTML = `
+      <div class="product-gallery img-placeholder ${product.gradient || 'green'} fade-in-up">
+        ${Icons[product.icon](120)}
+      </div>
+      <div class="product-info slide-in-right">
+        <div class="product-meta-row">
+          <span class="badge badge-green">${product.badge}</span>
+          <span class="badge badge-info">${product.category}</span>
+        </div>
+        <h1>${product.name}</h1>
+        <div class="product-meta-row">
+          <div class="detail-rating">
+            ${renderStars(product.rating)}
+            <span>${product.rating} (${product.reviews} avaliações)</span>
+          </div>
+        </div>
+        <div class="detail-price">${formatBRL(product.price)} <small>${product.unit}</small></div>
+        <p class="detail-description">${product.description}</p>
+        
+        <div class="detail-producer" data-tooltip="Ver perfil do produtor">
+          <div class="detail-producer-avatar">${product.producer.charAt(0)}</div>
+          <div class="detail-producer-info">
+            <h4>${product.producer}</h4>
+            <span>${Icons.locationPin(14)} ${product.location}</span>
+          </div>
+        </div>
+
+        <label style="font-size:var(--font-size-sm);font-weight:600;margin-bottom:var(--space-2);display:block;">Quantidade</label>
+        <div class="quantity-selector">
+          <button onclick="changeQty(-1)" data-tooltip="Diminuir">−</button>
+          <span class="qty-value" id="qty-display">${qty}</span>
+          <button onclick="changeQty(1)" data-tooltip="Aumentar">+</button>
+          <span style="font-size:var(--font-size-sm);color:var(--text-muted);">= <strong id="subtotal">${formatBRL(product.price * qty)}</strong></span>
+        </div>
+
+        <div class="detail-actions">
+          <button class="btn btn-primary btn-lg btn-pulse" onclick="addProductToCart()" data-tooltip="Adicionar ao carrinho">
+            ${Icons.cart(20)} Adicionar ao Carrinho
+          </button>
+          <button class="btn btn-outline btn-lg" onclick="showToast('Adicionado aos favoritos!','heart')" data-tooltip="Salvar nos favoritos">
+            ${Icons.heart(20)}
+          </button>
+          <button class="btn btn-ghost btn-lg" onclick="showToast('Link copiado!','share')" data-tooltip="Compartilhar produto">
+            ${Icons.share(20)}
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Tabs
+    document.getElementById('product-tabs').innerHTML = `
+      <div class="tabs-header">
+        <button class="tab-btn active" onclick="switchTab('desc')">Descrição</button>
+        <button class="tab-btn" onclick="switchTab('info')">Informações</button>
+        <button class="tab-btn" onclick="switchTab('reviews')">Avaliações (${product.reviews})</button>
+      </div>
+      <div class="tab-panel active" id="tab-desc">
+        <p style="color:var(--text-muted);line-height:1.8;">${product.description}</p>
+        <div style="margin-top:var(--space-6);display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-4);">
+          <div style="padding:var(--space-4);background:var(--green-light);border-radius:var(--radius-lg);text-align:center;">
+            ${Icons.check(24)}
+            <p style="font-size:var(--font-size-sm);font-weight:600;margin-top:var(--space-2);">100% Orgânico</p>
+          </div>
+          <div style="padding:var(--space-4);background:var(--green-light);border-radius:var(--radius-lg);text-align:center;">
+            ${Icons.leaf(24)}
+            <p style="font-size:var(--font-size-sm);font-weight:600;margin-top:var(--space-2);">Sustentável</p>
+          </div>
+          <div style="padding:var(--space-4);background:var(--green-light);border-radius:var(--radius-lg);text-align:center;">
+            ${Icons.farm(24)}
+            <p style="font-size:var(--font-size-sm);font-weight:600;margin-top:var(--space-2);">Direto do Produtor</p>
+          </div>
+        </div>
+      </div>
+      <div class="tab-panel" id="tab-info">
+        <table style="width:100%;border-collapse:collapse;">
+          ${[
+            ['Produtor', product.producer],
+            ['Localização', product.location],
+            ['Categoria', product.category],
+            ['Avaliação', product.rating + ' ★'],
+            ['Tipo', product.badge],
+          ].map(([k,v]) => `<tr style="border-bottom:1px solid var(--border-light);"><td style="padding:var(--space-3) 0;font-weight:600;font-size:var(--font-size-sm);">${k}</td><td style="padding:var(--space-3) 0;font-size:var(--font-size-sm);color:var(--text-muted);text-align:right;">${v}</td></tr>`).join('')}
+        </table>
+      </div>
+      <div class="tab-panel" id="tab-reviews">
+        ${generateReviews()}
+      </div>
+    `;
+
+    function generateReviews() {
+      const names = ['Ana Maria', 'Carlos H.', 'Lucia S.', 'Pedro T.', 'Fernanda O.'];
+      const texts = [
+        'Produto excelente! Muito fresco e de ótima qualidade. Recomendo a todos.',
+        'Entrega rápida e produto bem embalado. Voltarei a comprar com certeza.',
+        'Superou minhas expectativas. O sabor é incrível, dá pra sentir que é orgânico de verdade.',
+        'Muito bom! Minha família adorou. O produtor é muito atencioso.',
+        'Produto top! Preço justo pela qualidade que entregam.',
+      ];
+      return names.map((name, i) => `
+        <div class="review-item">
+          <div class="review-header">
+            <div class="review-avatar">${name.charAt(0)}</div>
+            <div class="review-info">
+              <h5>${name}</h5>
+              <span>Há ${i + 1} semana${i > 0 ? 's' : ''}</span>
+            </div>
+            <div style="margin-left:auto;">${renderStars(5 - (i > 2 ? 1 : 0))}</div>
+          </div>
+          <p class="review-text">${texts[i]}</p>
+        </div>
+      `).join('');
+    }
+
+    function changeQty(delta) {
+      qty = Math.max(1, qty + delta);
+      document.getElementById('qty-display').textContent = qty;
+      document.getElementById('subtotal').textContent = formatBRL(product.price * qty);
+    }
+
+    function addProductToCart() {
+      for (let i = 0; i < qty; i++) {
+        addToCart({ id: product.id, name: product.name, price: product.price, icon: product.icon, gradient: product.gradient || 'green' });
+      }
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    // Related products
+    const related = window.PRODUCTS.filter(p => p.id !== product.id && p.category === product.category).slice(0, 4);
+    const relatedFill = related.length < 4 ? [...related, ...window.PRODUCTS.filter(p => p.id !== product.id && !related.includes(p)).slice(0, 4 - related.length)] : related;
+    document.getElementById('related-grid').innerHTML = relatedFill.map((p, i) => renderProductCard(p, i)).join('');
+    setTimeout(initScrollAnimations, 100);
+  </script>
+</body>
+</html>

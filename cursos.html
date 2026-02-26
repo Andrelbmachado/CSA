@@ -4,36 +4,166 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cursos — CSA</title>
-  <meta name="description" content="Cursos da CSA — Aprenda técnicas sustentáveis de agricultura.">
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/icons.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/placeholder.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/animations.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
 </head>
 <body>
   <div id="app-header"></div>
-  <main class="placeholder-page">
-    <div class="placeholder-content">
-      <div class="placeholder-badge" id="badge-icon"></div>
-      <div class="placeholder-icon" id="page-icon"></div>
-      <h1>Cursos</h1>
-      <p>Nossa plataforma de cursos está sendo preparada. Em breve você terá acesso a cursos sobre agricultura orgânica, manejo sustentável, irrigação e muito mais.</p>
-      <a href="index.html" class="btn btn-primary btn-lg">Voltar ao Início</a>
+
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb">
+        <a href="index.html">Início</a>
+        <span class="sep">/</span>
+        <span>Cursos</span>
+      </div>
+      <h1>Cursos de <span>Capacitação</span></h1>
+      <p>Aprenda técnicas sustentáveis com instrutores especializados em agricultura familiar e orgânica.</p>
+    </div>
+  </section>
+
+  <main class="page-section">
+    <div class="container">
+      <!-- Filters -->
+      <div class="filters-bar">
+        <div class="filter-search">
+          <div class="input-group">
+            <span class="input-icon" id="search-icon"></span>
+            <input type="text" id="course-search" placeholder="Buscar cursos..." oninput="filterCourses()">
+          </div>
+        </div>
+        <div class="filter-pills" id="level-filters"></div>
+        <select class="filter-select" id="price-filter" onchange="filterCourses()">
+          <option value="all">Todos os Preços</option>
+          <option value="free">Gratuitos</option>
+          <option value="paid">Pagos</option>
+        </select>
+        <select class="filter-select" id="sort-select" onchange="filterCourses()">
+          <option value="popular">Mais Populares</option>
+          <option value="rating">Melhor Avaliação</option>
+          <option value="price-asc">Menor Preço</option>
+          <option value="price-desc">Maior Preço</option>
+        </select>
+      </div>
+
+      <p class="results-count" id="results-count"></p>
+      <div class="grid grid-3" id="courses-grid"></div>
+
+      <div class="empty-state" id="empty-state" style="display:none;">
+        <div id="empty-icon"></div>
+        <h3>Nenhum curso encontrado</h3>
+        <p>Tente ajustar os filtros ou buscar com outras palavras.</p>
+      </div>
     </div>
   </main>
+
   <div id="app-footer"></div>
+
   <script src="js/icons.js"></script>
+  <script src="js/data.js"></script>
   <script src="js/app.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('app-header').innerHTML = renderHeader('cursos');
-      document.getElementById('app-footer').innerHTML = renderFooter();
-      document.getElementById('page-icon').innerHTML = Icons.course(40);
-      document.getElementById('badge-icon').innerHTML = Icons.clock(14) + ' Em Desenvolvimento';
-      initMobileMenu();
-    });
+    document.getElementById('app-header').innerHTML = renderHeader('cursos');
+    document.getElementById('app-footer').innerHTML = renderFooter();
+    document.getElementById('search-icon').innerHTML = Icons.search(18);
+    document.getElementById('empty-icon').innerHTML = Icons.course(48);
+    initNotifications();
+
+    let activeLevel = 'todos';
+
+    function renderLevelFilters() {
+      const levels = ['todos', 'Iniciante', 'Intermediário', 'Avançado'];
+      document.getElementById('level-filters').innerHTML = levels.map(l =>
+        `<button class="filter-pill ${l === activeLevel ? 'active' : ''}" onclick="setLevel('${l}')">${l === 'todos' ? 'Todos' : l}</button>`
+      ).join('');
+    }
+
+    function setLevel(l) {
+      activeLevel = l;
+      renderLevelFilters();
+      filterCourses();
+    }
+
+    function renderCourseCard(c, idx) {
+      const gradientMap = { green:'#E8F5E4,#B8E6A8', yellow:'#FEF3C7,#FDE68A', brown:'#EFEBE9,#D7CCC8', orange:'#FFECB3,#FFB74D', blue:'#E3F2FD,#90CAF9' };
+      const bg = gradientMap[c.gradient] || gradientMap.green;
+      return `
+      <div class="course-card-full card-animated fade-in-up stagger-${(idx % 8) + 1}">
+        <div class="course-card-image" style="background:linear-gradient(135deg,${bg});">
+          ${Icons[c.icon](48)}
+          <span class="badge badge-green course-badge-top">${c.badge}</span>
+        </div>
+        <div class="course-card-body">
+          <h4>${c.title}</h4>
+          <div class="course-instructor">
+            <div class="course-instructor-avatar">${c.avatar}</div>
+            <span>${c.instructor}</span>
+          </div>
+          <div class="course-meta">
+            <span>${Icons.clock(14)} ${c.duration}</span>
+            <span>${Icons.course(14)} ${c.modules} módulos</span>
+            <span>${Icons.users(14)} ${c.students.toLocaleString()}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-2);">
+            ${renderStars(c.rating)}
+            <span style="font-size:var(--font-size-xs);color:var(--text-muted);">${c.rating}</span>
+            <span class="badge badge-info" style="margin-left:auto;font-size:10px;">${c.level}</span>
+          </div>
+          <div class="course-price">
+            <strong>${c.price === 0 ? 'Grátis' : formatBRL(c.price)}</strong>
+            <button class="btn btn-primary btn-sm" data-tooltip="Inscrever-se" onclick="showToast('Inscrição realizada com sucesso!','check')">
+              Inscrever-se
+            </button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function filterCourses() {
+      const search = document.getElementById('course-search').value.toLowerCase();
+      const priceFilter = document.getElementById('price-filter').value;
+      const sort = document.getElementById('sort-select').value;
+
+      let courses = [...window.COURSES];
+
+      if (activeLevel !== 'todos') courses = courses.filter(c => c.level === activeLevel);
+      if (priceFilter === 'free') courses = courses.filter(c => c.price === 0);
+      if (priceFilter === 'paid') courses = courses.filter(c => c.price > 0);
+      if (search) courses = courses.filter(c =>
+        c.title.toLowerCase().includes(search) ||
+        c.instructor.toLowerCase().includes(search) ||
+        c.description.toLowerCase().includes(search)
+      );
+
+      switch (sort) {
+        case 'rating':     courses.sort((a, b) => b.rating - a.rating); break;
+        case 'price-asc':  courses.sort((a, b) => a.price - b.price); break;
+        case 'price-desc': courses.sort((a, b) => b.price - a.price); break;
+        default:           courses.sort((a, b) => b.students - a.students); break;
+      }
+
+      const grid = document.getElementById('courses-grid');
+      const empty = document.getElementById('empty-state');
+      document.getElementById('results-count').textContent = `${courses.length} curso${courses.length !== 1 ? 's' : ''} encontrado${courses.length !== 1 ? 's' : ''}`;
+
+      if (courses.length === 0) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+      } else {
+        empty.style.display = 'none';
+        grid.innerHTML = courses.map((c, i) => renderCourseCard(c, i)).join('');
+        setTimeout(initScrollAnimations, 50);
+      }
+    }
+
+    renderLevelFilters();
+    filterCourses();
   </script>
 </body>
 </html>

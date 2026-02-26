@@ -4,36 +4,160 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Integrantes — CSA</title>
-  <meta name="description" content="Integrantes da CSA — Conheça os produtores e membros da comunidade.">
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/icons.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/placeholder.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/animations.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
 </head>
 <body>
   <div id="app-header"></div>
-  <main class="placeholder-page">
-    <div class="placeholder-content">
-      <div class="placeholder-badge" id="badge-icon"></div>
-      <div class="placeholder-icon" id="page-icon"></div>
-      <h1>Integrantes</h1>
-      <p>A página dos integrantes está sendo desenvolvida. Em breve você poderá conhecer todos os produtores e membros da nossa comunidade agrícola.</p>
-      <a href="index.html" class="btn btn-primary btn-lg">Voltar ao Início</a>
+
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb">
+        <a href="index.html">Início</a>
+        <span class="sep">/</span>
+        <span>Integrantes</span>
+      </div>
+      <h1>Nossos <span>Integrantes</span></h1>
+      <p>Conheça os produtores, educadores e parceiros que fazem a CSA acontecer.</p>
+    </div>
+  </section>
+
+  <main class="page-section">
+    <div class="container">
+      <!-- Stats -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4);margin-bottom:var(--space-10);">
+        <div class="scale-in stagger-1" style="text-align:center;padding:var(--space-6);background:var(--white);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+          <div style="font-size:var(--font-size-4xl);font-weight:700;color:var(--green-dark);">12</div>
+          <div style="font-size:var(--font-size-sm);color:var(--text-muted);">Integrantes Ativos</div>
+        </div>
+        <div class="scale-in stagger-2" style="text-align:center;padding:var(--space-6);background:var(--white);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+          <div style="font-size:var(--font-size-4xl);font-weight:700;color:var(--green-dark);">7</div>
+          <div style="font-size:var(--font-size-sm);color:var(--text-muted);">Produtores</div>
+        </div>
+        <div class="scale-in stagger-3" style="text-align:center;padding:var(--space-6);background:var(--white);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+          <div style="font-size:var(--font-size-4xl);font-weight:700;color:var(--green-dark);">4</div>
+          <div style="font-size:var(--font-size-sm);color:var(--text-muted);">Educadores</div>
+        </div>
+        <div class="scale-in stagger-4" style="text-align:center;padding:var(--space-6);background:var(--white);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+          <div style="font-size:var(--font-size-4xl);font-weight:700;color:var(--green-dark);">2</div>
+          <div style="font-size:var(--font-size-sm);color:var(--text-muted);">Parceiros</div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-bar">
+        <div class="filter-search">
+          <div class="input-group">
+            <span class="input-icon" id="search-icon"></span>
+            <input type="text" id="member-search" placeholder="Buscar integrantes..." oninput="filterMembers()">
+          </div>
+        </div>
+        <div class="filter-pills" id="role-filters"></div>
+      </div>
+
+      <p class="results-count" id="results-count"></p>
+      <div class="grid grid-3" id="members-grid"></div>
+
+      <div class="empty-state" id="empty-state" style="display:none;">
+        <div id="empty-icon"></div>
+        <h3>Nenhum integrante encontrado</h3>
+        <p>Tente ajustar a busca.</p>
+      </div>
     </div>
   </main>
+
+  <!-- Join CTA -->
+  <section class="container" style="margin-bottom:var(--space-12);">
+    <div class="promo-banner fade-in-up">
+      <div class="promo-content">
+        <h3>Faça Parte da Nossa Comunidade</h3>
+        <p>Se você é produtor, educador ou apaixonado por agricultura sustentável, junte-se a nós e faça parte dessa rede colaborativa.</p>
+        <a href="login.html" class="btn btn-primary btn-lg">Cadastre-se Agora</a>
+      </div>
+    </div>
+  </section>
+
   <div id="app-footer"></div>
+
   <script src="js/icons.js"></script>
+  <script src="js/data.js"></script>
   <script src="js/app.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('app-header').innerHTML = renderHeader('integrantes');
-      document.getElementById('app-footer').innerHTML = renderFooter();
-      document.getElementById('page-icon').innerHTML = Icons.members(40);
-      document.getElementById('badge-icon').innerHTML = Icons.clock(14) + ' Em Desenvolvimento';
-      initMobileMenu();
-    });
+    document.getElementById('app-header').innerHTML = renderHeader('integrantes');
+    document.getElementById('app-footer').innerHTML = renderFooter();
+    document.getElementById('search-icon').innerHTML = Icons.search(18);
+    document.getElementById('empty-icon').innerHTML = Icons.members(48);
+    initNotifications();
+
+    let activeRole = 'todos';
+    const roles = ['todos', 'produtor', 'educador', 'parceiro'];
+    const roleLabels = { todos: 'Todos', produtor: 'Produtores', educador: 'Educadores', parceiro: 'Parceiros' };
+
+    function renderRoleFilters() {
+      document.getElementById('role-filters').innerHTML = roles.map(r =>
+        `<button class="filter-pill ${r === activeRole ? 'active' : ''}" onclick="setRole('${r}')">${roleLabels[r]}</button>`
+      ).join('');
+    }
+
+    function setRole(r) { activeRole = r; renderRoleFilters(); filterMembers(); }
+
+    function renderMemberCard(m, idx) {
+      return `
+        <div class="member-card card-animated fade-in-up stagger-${(idx % 8) + 1}">
+          <div class="member-avatar ${m.color}">${m.avatar}</div>
+          <h4>${m.name}</h4>
+          <p class="member-role">${m.role}</p>
+          <p class="member-location">${Icons.locationPin(12)} ${m.location}</p>
+          <p class="member-bio">${m.bio}</p>
+          <div class="member-specialties">
+            ${m.specialties.map(s => `<span class="badge badge-green">${s}</span>`).join('')}
+          </div>
+          <p class="member-years">${Icons.calendar(12)} ${m.years} anos de experiência</p>
+          <div style="margin-top:var(--space-4);display:flex;gap:var(--space-2);justify-content:center;">
+            <button class="btn btn-outline btn-sm" onclick="showToast('Mensagem enviada para ${m.name.split(' ')[0]}!','check')" data-tooltip="Enviar mensagem">
+              ${Icons.email(14)} Contato
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="showToast('Perfil compartilhado!','share')" data-tooltip="Compartilhar perfil">
+              ${Icons.share(14)}
+            </button>
+          </div>
+        </div>`;
+    }
+
+    function filterMembers() {
+      const search = document.getElementById('member-search').value.toLowerCase();
+      let members = [...window.MEMBERS];
+
+      if (activeRole !== 'todos') members = members.filter(m => m.category === activeRole);
+      if (search) members = members.filter(m =>
+        m.name.toLowerCase().includes(search) ||
+        m.role.toLowerCase().includes(search) ||
+        m.location.toLowerCase().includes(search) ||
+        m.specialties.some(s => s.toLowerCase().includes(search))
+      );
+
+      const grid = document.getElementById('members-grid');
+      const empty = document.getElementById('empty-state');
+      document.getElementById('results-count').textContent = `${members.length} integrante${members.length !== 1 ? 's' : ''} encontrado${members.length !== 1 ? 's' : ''}`;
+
+      if (members.length === 0) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+      } else {
+        empty.style.display = 'none';
+        grid.innerHTML = members.map((m, i) => renderMemberCard(m, i)).join('');
+        setTimeout(initScrollAnimations, 50);
+      }
+    }
+
+    renderRoleFilters();
+    filterMembers();
   </script>
 </body>
 </html>

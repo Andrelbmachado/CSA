@@ -1,14 +1,14 @@
 /* ============================================
    AgroHub / CSA — Homepage Dynamic Content
+   Uses shared data from data.js
    ============================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Render shared header + footer
   document.getElementById('app-header').innerHTML = renderHeader('home');
   document.getElementById('app-footer').innerHTML = renderFooter();
-  initMobileMenu();
+  initNotifications();
 
-  // Render icons into placeholders
+  // Icons
   document.getElementById('hero-badge-icon').innerHTML = Icons.leaf(16);
   document.getElementById('hero-search-icon').innerHTML = Icons.search(20);
   document.getElementById('see-all-icon-products').innerHTML = Icons.chevronRight(16);
@@ -23,132 +23,75 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* ── Categories ── */
 function renderCategories() {
-  const categories = [
-    { name: 'Hortifruti', icon: 'apple' },
-    { name: 'Grãos', icon: 'wheat' },
-    { name: 'Orgânicos', icon: 'leaf' },
-    { name: 'Laticínios', icon: 'waterDrop' },
-    { name: 'Mudas', icon: 'plant' },
-    { name: 'Sementes', icon: 'seed' },
-    { name: 'Equipamentos', icon: 'tractor' },
-    { name: 'Artesanal', icon: 'recipe' },
-  ];
-
   const container = document.getElementById('categories-row');
-  container.innerHTML = categories.map((cat, i) => `
-    <div class="category-pill${i === 0 ? ' active' : ''}" tabindex="0">
+  container.innerHTML = window.CATEGORIES.map((cat, i) => `
+    <a href="marketplace.html" class="category-pill card-animated${i === 0 ? ' active' : ''}" data-tooltip="${cat.count} produtos">
       <div class="category-icon">${Icons[cat.icon](24)}</div>
       <span class="category-name">${cat.name}</span>
-    </div>
+    </a>
   `).join('');
-
-  // Toggle active on click
-  container.querySelectorAll('.category-pill').forEach(pill => {
-    pill.addEventListener('click', () => {
-      container.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
-    });
-  });
 }
 
-/* ── Products ── */
+/* ── Products (top 8 from shared data) ── */
 function renderProducts() {
-  const products = [
-    { name: 'Cesta de Orgânicos', producer: 'Sítio Boa Esperança', location: 'Minas Gerais', price: 'R$ 89,90', unit: '/cesta', rating: 4.8, reviews: 124, badge: 'Orgânico', icon: 'leaf' },
-    { name: 'Mel Silvestre Puro', producer: 'Apiário Serra Verde', location: 'Paraná', price: 'R$ 45,00', unit: '/500g', rating: 4.9, reviews: 89, badge: 'Artesanal', icon: 'waterDrop' },
-    { name: 'Café Especial Torrado', producer: 'Fazenda Alto Belo', location: 'São Paulo', price: 'R$ 38,50', unit: '/250g', rating: 4.7, reviews: 203, badge: 'Especial', icon: 'seed' },
-    { name: 'Queijo Minas Artesanal', producer: 'Laticínios Serra', location: 'Minas Gerais', price: 'R$ 52,00', unit: '/peça', rating: 4.6, reviews: 67, badge: 'Artesanal', icon: 'farm' },
-    { name: 'Azeite de Oliva Extra', producer: 'Oliveira do Sul', location: 'Rio Grande do Sul', price: 'R$ 68,00', unit: '/500ml', rating: 4.8, reviews: 156, badge: 'Premium', icon: 'plant' },
-    { name: 'Frutas Vermelhas Mix', producer: 'Chácara Frutal', location: 'Santa Catarina', price: 'R$ 32,90', unit: '/bandeja', rating: 4.5, reviews: 42, badge: 'Fresco', icon: 'apple' },
-    { name: 'Granola Artesanal', producer: 'Natural e Cia', location: 'Bahia', price: 'R$ 24,90', unit: '/300g', rating: 4.4, reviews: 78, badge: 'Natural', icon: 'wheat' },
-    { name: 'Manteiga de Garrafa', producer: 'Fazenda Nordeste', location: 'Ceará', price: 'R$ 35,00', unit: '/350ml', rating: 4.7, reviews: 93, badge: 'Regional', icon: 'sun' },
-  ];
-
+  const products = window.PRODUCTS.slice(0, 8);
   const container = document.getElementById('products-grid');
-  container.innerHTML = products.map(p => {
-    const stars = Array(5).fill(0).map((_, i) =>
-      i < Math.floor(p.rating) ? Icons.star(14) : Icons.starOutline(14)
-    ).join('');
+  container.innerHTML = products.map((p, i) => renderProductCard(p, i)).join('');
+  setTimeout(initScrollAnimations, 100);
+}
 
+/* ── Courses (top 5 from shared data) ── */
+function renderCourses() {
+  const courses = window.COURSES.slice(0, 5);
+  const container = document.getElementById('courses-scroll');
+  const gradientMap = { green:'#E8F5E4,#B8E6A8', yellow:'#FEF3C7,#FDE68A', brown:'#EFEBE9,#D7CCC8', orange:'#FFECB3,#FFB74D', blue:'#E3F2FD,#90CAF9' };
+
+  container.innerHTML = courses.map(c => {
+    const bg = gradientMap[c.gradient] || gradientMap.green;
     return `
-    <div class="product-card">
-      <div class="product-card-image">
-        ${Icons[p.icon](64)}
-        <span class="badge badge-green product-badge">${p.badge}</span>
-        <button class="favorite-btn" title="Favoritar">${Icons.heart(16)}</button>
-      </div>
-      <div class="product-card-body">
-        <div class="product-producer">
-          <div class="product-producer-avatar">${Icons.profile(12)}</div>
-          <span>${p.producer} · ${p.location}</span>
+    <div class="course-card card-animated">
+      <a href="cursos.html">
+        <div class="course-card-image" style="background:linear-gradient(135deg,${bg});">
+          ${Icons[c.icon](48)}
+          <span class="badge badge-green course-badge-top">${c.badge}</span>
         </div>
-        <h3 class="product-name">${p.name}</h3>
-        <div class="product-rating">
-          ${stars}
-          <span>${p.rating} (${p.reviews})</span>
-        </div>
-        <div class="product-footer">
-          <div class="product-price">${p.price} <small>${p.unit}</small></div>
-          <button class="add-cart-btn" title="Adicionar ao carrinho">${Icons.plus(18)}</button>
+      </a>
+      <div class="course-card-body">
+        <h4>${c.title}</h4>
+        <p style="font-size:var(--font-size-sm);color:var(--text-muted);margin-bottom:var(--space-3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${c.description}</p>
+        <div class="course-meta">
+          <span data-tooltip="Duração">${Icons.clock(14)} ${c.duration}</span>
+          <span data-tooltip="Alunos matriculados">${Icons.users(14)} ${c.students.toLocaleString()}</span>
+          <span data-tooltip="Avaliação">${Icons.star(14)} ${c.rating}</span>
         </div>
       </div>
     </div>`;
   }).join('');
 }
 
-/* ── Courses ── */
-function renderCourses() {
-  const courses = [
-    { title: 'Agricultura Orgânica para Iniciantes', desc: 'Aprenda os fundamentos da produção orgânica e técnicas sustentáveis de cultivo.', duration: '12h', students: 340, badge: 'Popular' },
-    { title: 'Manejo Integrado de Pragas', desc: 'Técnicas naturais e biológicas para controlar pragas sem agrotóxicos.', duration: '8h', students: 215, badge: 'Novo' },
-    { title: 'Irrigação Eficiente', desc: 'Sistemas de irrigação modernos para economia de água e maior produtividade.', duration: '6h', students: 189, badge: 'Destaque' },
-    { title: 'Compostagem e Adubação Verde', desc: 'Transforme resíduos orgânicos em adubo rico para suas plantações.', duration: '10h', students: 278, badge: 'Popular' },
-    { title: 'Apicultura Sustentável', desc: 'Crie e mantenha apiários produtivos respeitando o meio ambiente.', duration: '15h', students: 156, badge: 'Novo' },
-  ];
-
-  const container = document.getElementById('courses-scroll');
-  container.innerHTML = courses.map(c => `
-    <div class="course-card">
-      <div class="course-card-image">
-        ${Icons.course(48)}
-        <span class="badge badge-green course-badge-top">${c.badge}</span>
-      </div>
-      <div class="course-card-body">
-        <h4>${c.title}</h4>
-        <p>${c.desc}</p>
-        <div class="course-meta">
-          <span>${Icons.clock(14)} ${c.duration}</span>
-          <span>${Icons.users(14)} ${c.students} alunos</span>
-        </div>
-      </div>
-    </div>
-  `).join('');
-}
-
-/* ── Recipes ── */
+/* ── Recipes (top 6 from shared data) ── */
 function renderRecipes() {
-  const recipes = [
-    { title: 'Salada Tropical com Mel e Limão', time: '15 min', servings: '2 porções' },
-    { title: 'Bolo de Fubá com Goiabada', time: '45 min', servings: '8 porções' },
-    { title: 'Suco Verde Detox', time: '5 min', servings: '1 porção' },
-    { title: 'Pão Integral Caseiro', time: '2h', servings: '1 pão' },
-    { title: 'Geleia de Morango Artesanal', time: '30 min', servings: '500ml' },
-    { title: 'Risoto de Abóbora com Queijo', time: '40 min', servings: '4 porções' },
-  ];
-
+  const recipes = window.RECIPES.slice(0, 6);
   const container = document.getElementById('recipes-grid');
-  container.innerHTML = recipes.map(r => `
-    <div class="recipe-card">
-      <div class="recipe-card-image">
-        ${Icons.recipe(48)}
-      </div>
+  const gradientMap = { green:'#E8F5E4,#B8E6A8', orange:'#FFECB3,#FFB74D', cream:'#FFF8E1,#FFE0B2', red:'#FFEBEE,#EF9A9A', brown:'#EFEBE9,#D7CCC8', purple:'#F3E5F5,#CE93D8' };
+
+  container.innerHTML = recipes.map((r, i) => {
+    const bg = gradientMap[r.gradient] || '#FEF3C7,#FBBF24';
+    return `
+    <div class="recipe-card card-animated fade-in-up stagger-${(i % 6) + 1}">
+      <a href="receitas.html">
+        <div class="recipe-card-image" style="background:linear-gradient(135deg,${bg});">
+          ${Icons[r.icon](48)}
+        </div>
+      </a>
       <div class="recipe-card-body">
         <h4>${r.title}</h4>
         <div class="recipe-meta">
-          <span>${Icons.clock(14)} ${r.time}</span>
-          <span>${Icons.users(14)} ${r.servings}</span>
+          <span data-tooltip="Tempo de preparo">${Icons.clock(14)} ${r.time}</span>
+          <span data-tooltip="Porções">${Icons.users(14)} ${r.serves} porções</span>
+          <span data-tooltip="Dificuldade">${Icons.star(14)} ${r.difficulty}</span>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }

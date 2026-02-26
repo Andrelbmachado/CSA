@@ -4,36 +4,137 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Receitas — CSA</title>
-  <meta name="description" content="Receitas da CSA — Do campo para a sua cozinha.">
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/icons.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/placeholder.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/animations.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
 </head>
 <body>
   <div id="app-header"></div>
-  <main class="placeholder-page">
-    <div class="placeholder-content">
-      <div class="placeholder-badge" id="badge-icon"></div>
-      <div class="placeholder-icon" id="page-icon"></div>
-      <h1>Receitas</h1>
-      <p>A seção de receitas está sendo preparada com cuidado. Em breve você terá acesso a receitas deliciosas com ingredientes frescos direto do campo.</p>
-      <a href="index.html" class="btn btn-primary btn-lg">Voltar ao Início</a>
+
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb">
+        <a href="index.html">Início</a>
+        <span class="sep">/</span>
+        <span>Receitas</span>
+      </div>
+      <h1>Receitas da <span>Comunidade</span></h1>
+      <p>Do campo para a cozinha — receitas saudáveis com ingredientes orgânicos e de estação.</p>
+    </div>
+  </section>
+
+  <main class="page-section">
+    <div class="container">
+      <div class="filters-bar">
+        <div class="filter-search">
+          <div class="input-group">
+            <span class="input-icon" id="search-icon"></span>
+            <input type="text" id="recipe-search" placeholder="Buscar receitas..." oninput="filterRecipes()">
+          </div>
+        </div>
+        <div class="filter-pills" id="cat-filters"></div>
+        <select class="filter-select" id="diff-filter" onchange="filterRecipes()">
+          <option value="all">Dificuldade</option>
+          <option value="Fácil">Fácil</option>
+          <option value="Intermediário">Intermediário</option>
+        </select>
+      </div>
+
+      <p class="results-count" id="results-count"></p>
+      <div class="grid grid-3" id="recipes-grid"></div>
+
+      <div class="empty-state" id="empty-state" style="display:none;">
+        <div id="empty-icon"></div>
+        <h3>Nenhuma receita encontrada</h3>
+        <p>Tente ajustar os filtros.</p>
+      </div>
     </div>
   </main>
+
   <div id="app-footer"></div>
+
   <script src="js/icons.js"></script>
+  <script src="js/data.js"></script>
   <script src="js/app.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('app-header').innerHTML = renderHeader('receitas');
-      document.getElementById('app-footer').innerHTML = renderFooter();
-      document.getElementById('page-icon').innerHTML = Icons.recipe(40);
-      document.getElementById('badge-icon').innerHTML = Icons.clock(14) + ' Em Desenvolvimento';
-      initMobileMenu();
-    });
+    document.getElementById('app-header').innerHTML = renderHeader('receitas');
+    document.getElementById('app-footer').innerHTML = renderFooter();
+    document.getElementById('search-icon').innerHTML = Icons.search(18);
+    document.getElementById('empty-icon').innerHTML = Icons.recipe(48);
+    initNotifications();
+
+    let activeCat = 'todos';
+    const cats = ['todos', ...new Set(window.RECIPES.map(r => r.category))];
+
+    function renderCatFilters() {
+      document.getElementById('cat-filters').innerHTML = cats.map(c =>
+        `<button class="filter-pill ${c === activeCat ? 'active' : ''}" onclick="setCat('${c}')">${c === 'todos' ? 'Todas' : c.charAt(0).toUpperCase() + c.slice(1)}</button>`
+      ).join('');
+    }
+
+    function setCat(c) { activeCat = c; renderCatFilters(); filterRecipes(); }
+
+    function renderRecipeCard(r, idx) {
+      const gradientMap = { green:'#E8F5E4,#B8E6A8', orange:'#FFECB3,#FFB74D', cream:'#FFF8E1,#FFE0B2', red:'#FFEBEE,#EF9A9A', brown:'#EFEBE9,#D7CCC8', purple:'#F3E5F5,#CE93D8' };
+      const bg = gradientMap[r.gradient] || gradientMap.green;
+      return `
+        <div class="recipe-card-full card-animated fade-in-up stagger-${(idx % 8) + 1}">
+          <div class="recipe-card-image" style="background:linear-gradient(135deg,${bg});">
+            ${Icons[r.icon](48)}
+          </div>
+          <div class="recipe-card-body">
+            <h4>${r.title}</h4>
+            <p>${r.description}</p>
+            <div class="recipe-meta">
+              <span data-tooltip="Tempo de preparo">${Icons.clock(14)} ${r.time}</span>
+              <span data-tooltip="Dificuldade">${Icons.star(14)} ${r.difficulty}</span>
+              <span data-tooltip="Porções">${Icons.users(14)} ${r.serves} porções</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--border-light);">
+              <span style="font-size:var(--font-size-xs);color:var(--text-muted);">Por ${r.author}</span>
+              <div style="display:flex;gap:var(--space-2);">
+                <button class="btn btn-ghost btn-sm" onclick="showToast('Receita salva nos favoritos!','heart')" data-tooltip="Salvar receita">${Icons.heart(14)}</button>
+                <button class="btn btn-ghost btn-sm" onclick="showToast('Link da receita copiado!','share')" data-tooltip="Compartilhar">${Icons.share(14)}</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function filterRecipes() {
+      const search = document.getElementById('recipe-search').value.toLowerCase();
+      const diff = document.getElementById('diff-filter').value;
+      let recipes = [...window.RECIPES];
+
+      if (activeCat !== 'todos') recipes = recipes.filter(r => r.category === activeCat);
+      if (diff !== 'all') recipes = recipes.filter(r => r.difficulty === diff);
+      if (search) recipes = recipes.filter(r =>
+        r.title.toLowerCase().includes(search) ||
+        r.description.toLowerCase().includes(search) ||
+        r.ingredients.some(i => i.toLowerCase().includes(search))
+      );
+
+      const grid = document.getElementById('recipes-grid');
+      const empty = document.getElementById('empty-state');
+      document.getElementById('results-count').textContent = `${recipes.length} receita${recipes.length !== 1 ? 's' : ''} encontrada${recipes.length !== 1 ? 's' : ''}`;
+
+      if (recipes.length === 0) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+      } else {
+        empty.style.display = 'none';
+        grid.innerHTML = recipes.map((r, i) => renderRecipeCard(r, i)).join('');
+        setTimeout(initScrollAnimations, 50);
+      }
+    }
+
+    renderCatFilters();
+    filterRecipes();
   </script>
 </body>
 </html>

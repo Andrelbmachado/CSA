@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('app-header').innerHTML = renderHeader('design-system');
   document.getElementById('app-footer').innerHTML = renderFooter();
   initMobileMenu();
+  initNotifications();
 
   renderSidebar();
   renderAllSections();

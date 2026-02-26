@@ -4,36 +4,142 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Marketplace — CSA</title>
-  <meta name="description" content="Marketplace da CSA — Compre produtos frescos direto dos produtores rurais.">
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/icons.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/placeholder.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/animations.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
 </head>
 <body>
   <div id="app-header"></div>
-  <main class="placeholder-page">
-    <div class="placeholder-content">
-      <div class="placeholder-badge" id="badge-icon"></div>
-      <div class="placeholder-icon" id="page-icon"></div>
-      <h1>Marketplace</h1>
-      <p>Nosso marketplace de produtos agrícolas está em desenvolvimento. Em breve você poderá comprar produtos frescos direto dos produtores da sua região.</p>
-      <a href="index.html" class="btn btn-primary btn-lg">Voltar ao Início</a>
+
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb">
+        <a href="index.html">Início</a>
+        <span class="sep">/</span>
+        <span>Marketplace</span>
+      </div>
+      <h1>Nosso <span>Marketplace</span></h1>
+      <p>Produtos frescos direto do produtor para sua mesa. Orgânicos, artesanais e sustentáveis.</p>
+    </div>
+  </section>
+
+  <main class="page-section">
+    <div class="container">
+      <!-- Filters -->
+      <div class="filters-bar">
+        <div class="filter-search">
+          <div class="input-group">
+            <span class="input-icon" id="search-icon"></span>
+            <input type="text" id="product-search" placeholder="Buscar produtos..." oninput="filterProducts()">
+          </div>
+        </div>
+        <div class="filter-pills" id="category-filters"></div>
+        <select class="filter-select" id="sort-select" onchange="filterProducts()">
+          <option value="popular">Mais Populares</option>
+          <option value="price-asc">Menor Preço</option>
+          <option value="price-desc">Maior Preço</option>
+          <option value="rating">Melhor Avaliação</option>
+          <option value="name">A-Z</option>
+        </select>
+      </div>
+
+      <p class="results-count" id="results-count"></p>
+
+      <!-- Products Grid -->
+      <div class="grid grid-4" id="marketplace-grid"></div>
+
+      <!-- Empty state -->
+      <div class="empty-state" id="empty-state" style="display:none;">
+        <div id="empty-icon"></div>
+        <h3>Nenhum produto encontrado</h3>
+        <p>Tente ajustar os filtros ou buscar com outras palavras.</p>
+      </div>
     </div>
   </main>
+
   <div id="app-footer"></div>
+
   <script src="js/icons.js"></script>
+  <script src="js/data.js"></script>
   <script src="js/app.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('app-header').innerHTML = renderHeader('marketplace');
-      document.getElementById('app-footer').innerHTML = renderFooter();
-      document.getElementById('page-icon').innerHTML = Icons.marketplace(40);
-      document.getElementById('badge-icon').innerHTML = Icons.clock(14) + ' Em Desenvolvimento';
-      initMobileMenu();
-    });
+    // Init page
+    document.getElementById('app-header').innerHTML = renderHeader('marketplace');
+    document.getElementById('app-footer').innerHTML = renderFooter();
+    document.getElementById('search-icon').innerHTML = Icons.search(18);
+    document.getElementById('empty-icon').innerHTML = Icons.search(48);
+    initNotifications();
+
+    let activeCategory = 'todos';
+
+    // Render category pills
+    function renderCategoryFilters() {
+      const el = document.getElementById('category-filters');
+      const cats = [{ id: 'todos', name: 'Todos' }, ...window.CATEGORIES];
+      el.innerHTML = cats.map(c =>
+        `<button class="filter-pill ${c.id === activeCategory ? 'active' : ''}" onclick="setCategory('${c.id}')" data-tooltip="${c.name}">${c.name}</button>`
+      ).join('');
+    }
+
+    function setCategory(cat) {
+      activeCategory = cat;
+      renderCategoryFilters();
+      filterProducts();
+    }
+
+    function filterProducts() {
+      const search = document.getElementById('product-search').value.toLowerCase();
+      const sort = document.getElementById('sort-select').value;
+
+      let products = [...window.PRODUCTS];
+
+      // Filter by category
+      if (activeCategory !== 'todos') {
+        products = products.filter(p => p.category === activeCategory);
+      }
+
+      // Filter by search
+      if (search) {
+        products = products.filter(p =>
+          p.name.toLowerCase().includes(search) ||
+          p.producer.toLowerCase().includes(search) ||
+          p.description.toLowerCase().includes(search)
+        );
+      }
+
+      // Sort
+      switch (sort) {
+        case 'price-asc':  products.sort((a, b) => a.price - b.price); break;
+        case 'price-desc': products.sort((a, b) => b.price - a.price); break;
+        case 'rating':     products.sort((a, b) => b.rating - a.rating); break;
+        case 'name':       products.sort((a, b) => a.name.localeCompare(b.name)); break;
+        default:           products.sort((a, b) => b.reviews - a.reviews); break;
+      }
+
+      // Render
+      const grid = document.getElementById('marketplace-grid');
+      const empty = document.getElementById('empty-state');
+      const count = document.getElementById('results-count');
+
+      if (products.length === 0) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+        count.textContent = '0 produtos encontrados';
+      } else {
+        empty.style.display = 'none';
+        count.textContent = `${products.length} produto${products.length > 1 ? 's' : ''} encontrado${products.length > 1 ? 's' : ''}`;
+        grid.innerHTML = products.map((p, i) => renderProductCard(p, i)).join('');
+        setTimeout(initScrollAnimations, 50);
+      }
+    }
+
+    renderCategoryFilters();
+    filterProducts();
   </script>
 </body>
 </html>
