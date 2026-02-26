@@ -17,7 +17,44 @@
   <div id="app-header"></div>
 
   <main class="page-section page-transition">
-    <div class="container">
+    <div class="container" id="profile-page"></div>
+  </main>
+
+  <div id="app-footer"></div>
+
+  <script src="js/icons.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('app-header').innerHTML = renderHeader('');
+    document.getElementById('app-footer').innerHTML = renderFooter();
+    initNotifications();
+
+    const sections = ['dados', 'pedidos', 'cursos', 'favoritos', 'enderecos', 'config'];
+
+    function showSection(name) {
+      sections.forEach(s => {
+        document.getElementById('sec-' + s).style.display = s === name ? 'block' : 'none';
+      });
+      document.querySelectorAll('.profile-sidebar-item').forEach((item, i) => {
+        item.classList.toggle('active', sections[i] === name);
+      });
+    }
+
+    function renderProfilePage() {
+      const orders = [
+        { id: 1042, date: '15/01/2025', status: 'Enviado', statusColor: 'badge-info', items: 3, total: 187.40 },
+        { id: 1041, date: '08/01/2025', status: 'Entregue', statusColor: 'badge-green', items: 5, total: 256.80 },
+        { id: 1038, date: '22/12/2024', status: 'Entregue', statusColor: 'badge-green', items: 2, total: 89.90 },
+        { id: 1035, date: '10/12/2024', status: 'Entregue', statusColor: 'badge-green', items: 4, total: 178.50 },
+      ];
+
+      const progress = [75, 40, 15];
+      const courses = window.COURSES.slice(0, 3);
+      const favProducts = window.PRODUCTS.slice(0, 4);
+      const notifSettings = ['E-mail de ofertas', 'Notificações push', 'Novos cursos', 'Status de pedidos'];
+
+      document.getElementById('profile-page').innerHTML = `
       <!-- Profile Header -->
       <div class="profile-header fade-in-up">
         <div class="profile-avatar">AM</div>
@@ -31,16 +68,13 @@
         </div>
         <div class="profile-stats">
           <div class="profile-stat" data-tooltip="Total de pedidos realizados">
-            <strong>12</strong>
-            <span>Pedidos</span>
+            <strong>12</strong><span>Pedidos</span>
           </div>
           <div class="profile-stat" data-tooltip="Cursos matriculados">
-            <strong>3</strong>
-            <span>Cursos</span>
+            <strong>3</strong><span>Cursos</span>
           </div>
           <div class="profile-stat" data-tooltip="Receitas salvas">
-            <strong>8</strong>
-            <span>Favoritos</span>
+            <strong>8</strong><span>Favoritos</span>
           </div>
         </div>
       </div>
@@ -73,34 +107,16 @@
 
         <!-- Content -->
         <div id="profile-content">
-          <!-- Meus Dados (default) -->
+          <!-- Meus Dados -->
           <div class="profile-content" id="sec-dados">
             <h3>${Icons.profile(20)} Meus Dados</h3>
             <form class="profile-form" onsubmit="event.preventDefault();showToast('Dados salvos com sucesso!','check')">
-              <div class="form-group">
-                <label>Nome</label>
-                <input type="text" value="André" placeholder="Primeiro nome">
-              </div>
-              <div class="form-group">
-                <label>Sobrenome</label>
-                <input type="text" value="Machado" placeholder="Sobrenome">
-              </div>
-              <div class="form-group">
-                <label>E-mail</label>
-                <input type="email" value="andre@email.com" placeholder="E-mail">
-              </div>
-              <div class="form-group">
-                <label>Telefone</label>
-                <input type="tel" value="(11) 99999-9999" placeholder="Telefone">
-              </div>
-              <div class="form-group">
-                <label>CPF</label>
-                <input type="text" value="***.***.***-00" placeholder="CPF">
-              </div>
-              <div class="form-group">
-                <label>Data de Nascimento</label>
-                <input type="date" value="1990-01-15">
-              </div>
+              <div class="form-group"><label>Nome</label><input type="text" value="André" placeholder="Primeiro nome"></div>
+              <div class="form-group"><label>Sobrenome</label><input type="text" value="Machado" placeholder="Sobrenome"></div>
+              <div class="form-group"><label>E-mail</label><input type="email" value="andre@email.com" placeholder="E-mail"></div>
+              <div class="form-group"><label>Telefone</label><input type="tel" value="(11) 99999-9999" placeholder="Telefone"></div>
+              <div class="form-group"><label>CPF</label><input type="text" value="***.***.***-00" placeholder="CPF"></div>
+              <div class="form-group"><label>Data de Nascimento</label><input type="date" value="1990-01-15"></div>
               <div class="form-group full">
                 <label>Bio</label>
                 <textarea style="padding:var(--space-3);border:1px solid var(--border-light);border-radius:var(--radius-md);min-height:80px;resize:vertical;" placeholder="Conte um pouco sobre você...">Apaixonado por agricultura sustentável e alimentação saudável. Consumidor CSA desde 2024.</textarea>
@@ -116,12 +132,7 @@
           <div class="profile-content" id="sec-pedidos" style="display:none;">
             <h3>${Icons.cart(20)} Meus Pedidos</h3>
             <div style="display:flex;flex-direction:column;gap:var(--space-4);">
-              ${[
-                { id: 1042, date: '15/01/2025', status: 'Enviado', statusColor: 'badge-info', items: 3, total: 187.40 },
-                { id: 1041, date: '08/01/2025', status: 'Entregue', statusColor: 'badge-green', items: 5, total: 256.80 },
-                { id: 1038, date: '22/12/2024', status: 'Entregue', statusColor: 'badge-green', items: 2, total: 89.90 },
-                { id: 1035, date: '10/12/2024', status: 'Entregue', statusColor: 'badge-green', items: 4, total: 178.50 },
-              ].map(o => `
+              ${orders.map(o => `
                 <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--space-4);background:var(--surface);border-radius:var(--radius-md);">
                   <div>
                     <strong style="font-size:var(--font-size-sm);">Pedido #${o.id}</strong>
@@ -138,7 +149,7 @@
           <div class="profile-content" id="sec-cursos" style="display:none;">
             <h3>${Icons.course(20)} Meus Cursos</h3>
             <div style="display:flex;flex-direction:column;gap:var(--space-4);">
-              ${window.COURSES.slice(0, 3).map((c, i) => `
+              ${courses.map((c, i) => `
                 <div style="display:flex;gap:var(--space-4);align-items:center;padding:var(--space-4);background:var(--surface);border-radius:var(--radius-md);">
                   <div style="width:60px;height:60px;border-radius:var(--radius-md);background:var(--green-light);display:flex;align-items:center;justify-content:center;">
                     ${Icons[c.icon](28)}
@@ -147,10 +158,10 @@
                     <strong style="font-size:var(--font-size-sm);">${c.title}</strong>
                     <p style="font-size:var(--font-size-xs);color:var(--text-muted);">${c.instructor} · ${c.modules} módulos</p>
                     <div style="height:4px;background:var(--border-light);border-radius:2px;margin-top:var(--space-2);overflow:hidden;">
-                      <div style="height:100%;background:var(--green-primary);border-radius:2px;width:${[75, 40, 15][i]}%;"></div>
+                      <div style="height:100%;background:var(--green-primary);border-radius:2px;width:${progress[i]}%;"></div>
                     </div>
                   </div>
-                  <span class="badge badge-green">${[75, 40, 15][i]}%</span>
+                  <span class="badge badge-green">${progress[i]}%</span>
                 </div>
               `).join('')}
             </div>
@@ -160,7 +171,7 @@
           <div class="profile-content" id="sec-favoritos" style="display:none;">
             <h3>${Icons.heart(20)} Favoritos</h3>
             <div class="grid grid-2" style="gap:var(--space-4);">
-              ${window.PRODUCTS.slice(0, 4).map((p, i) => `
+              ${favProducts.map(p => `
                 <div style="display:flex;gap:var(--space-3);padding:var(--space-3);background:var(--surface);border-radius:var(--radius-md);align-items:center;">
                   <div style="width:50px;height:50px;border-radius:var(--radius-md);background:var(--green-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                     ${Icons[p.icon](24)}
@@ -202,7 +213,7 @@
             <div style="display:flex;flex-direction:column;gap:var(--space-6);">
               <div>
                 <h4 style="font-size:var(--font-size-base);margin-bottom:var(--space-3);">Notificações</h4>
-                ${['E-mail de ofertas', 'Notificações push', 'Novos cursos', 'Status de pedidos'].map(n => `
+                ${notifSettings.map(n => `
                   <label style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) 0;border-bottom:1px solid var(--border-light);font-size:var(--font-size-sm);cursor:pointer;">
                     ${n}
                     <input type="checkbox" checked style="width:18px;height:18px;accent-color:var(--green-primary);">
@@ -220,30 +231,12 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  </main>
+      </div>`;
 
-  <div id="app-footer"></div>
-
-  <script src="js/icons.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/app.js"></script>
-  <script>
-    document.getElementById('app-header').innerHTML = renderHeader('');
-    document.getElementById('app-footer').innerHTML = renderFooter();
-    initNotifications();
-
-    const sections = ['dados', 'pedidos', 'cursos', 'favoritos', 'enderecos', 'config'];
-
-    function showSection(name) {
-      sections.forEach(s => {
-        document.getElementById('sec-' + s).style.display = s === name ? 'block' : 'none';
-      });
-      document.querySelectorAll('.profile-sidebar-item').forEach((item, i) => {
-        item.classList.toggle('active', sections[i] === name);
-      });
+      setTimeout(initScrollAnimations, 100);
     }
+
+    renderProfilePage();
   </script>
 </body>
 </html>
