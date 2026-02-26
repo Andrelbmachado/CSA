@@ -850,6 +850,26 @@
 }
 .auth-footer a { color: var(--green-dark); font-weight: 600; }
 
+.social-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  border: 1px solid var(--border-light) !important;
+  border-radius: 999px !important;
+  padding: var(--space-3) var(--space-4) !important;
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-fast);
+}
+.social-btn:hover {
+  border-color: var(--border-dark) !important;
+  background: var(--surface) !important;
+}
+.social-btn svg {
+  flex-shrink: 0;
+}
+
 /* ══════════════════════════════════════════════
    PROFILE PAGE
    ══════════════════════════════════════════════ */
