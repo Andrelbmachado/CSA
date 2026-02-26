@@ -1,0 +1,390 @@
+/* ============================================
+   AgroHub / CSA — Design System Page Styles
+   ============================================ */
+
+.ds-layout {
+  display: flex;
+  min-height: calc(100vh - var(--header-height));
+}
+
+/* ── Sidebar Navigation ── */
+.ds-sidebar {
+  width: 260px;
+  background: var(--white);
+  border-right: 1px solid var(--border-light);
+  padding: var(--space-6);
+  position: sticky;
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.ds-sidebar h3 {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+  padding-left: var(--space-3);
+}
+
+.ds-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-6);
+}
+
+.ds-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.ds-sidebar-link:hover {
+  background: var(--green-light);
+  color: var(--green-dark);
+}
+
+.ds-sidebar-link.active {
+  background: var(--green-light);
+  color: var(--green-dark);
+  font-weight: 600;
+}
+
+.ds-sidebar-link svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ── Main Content ── */
+.ds-main {
+  flex: 1;
+  padding: var(--space-10) var(--space-10);
+  max-width: 960px;
+}
+
+.ds-section {
+  margin-bottom: var(--space-16);
+  scroll-margin-top: calc(var(--header-height) + var(--space-6));
+}
+
+.ds-section-title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--green-primary);
+  display: inline-block;
+}
+
+.ds-section-desc {
+  font-size: var(--font-size-base);
+  color: var(--text-muted);
+  margin-bottom: var(--space-8);
+  line-height: 1.7;
+  margin-top: var(--space-3);
+}
+
+/* ── Color Swatches ── */
+.ds-color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.ds-color-card {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  background: var(--white);
+}
+
+.ds-color-swatch {
+  height: 100px;
+  width: 100%;
+}
+
+.ds-color-info {
+  padding: var(--space-3) var(--space-4);
+}
+
+.ds-color-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: var(--space-1);
+}
+
+.ds-color-hex {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-family: 'Courier New', monospace;
+}
+
+.ds-color-var {
+  font-size: var(--font-size-xs);
+  color: var(--muted-gray);
+  font-family: 'Courier New', monospace;
+}
+
+/* ── Typography Showcase ── */
+.ds-type-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-6);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.ds-type-label {
+  width: 140px;
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-family: 'Courier New', monospace;
+}
+
+.ds-type-sample {
+  flex: 1;
+  color: var(--text-dark);
+}
+
+/* ── Spacing Showcase ── */
+.ds-spacing-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.ds-spacing-bar {
+  height: 24px;
+  background: var(--green-primary);
+  border-radius: var(--radius-sm);
+  opacity: 0.8;
+}
+
+.ds-spacing-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-family: 'Courier New', monospace;
+  width: 160px;
+  flex-shrink: 0;
+}
+
+/* ── Icons Grid ── */
+.ds-icons-toolbar {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ds-icons-search {
+  flex: 1;
+  min-width: 250px;
+}
+
+.ds-icons-size-toggle {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.ds-icons-size-toggle button {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  border: 1px solid var(--border-light);
+  background: var(--white);
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.ds-icons-size-toggle button.active {
+  background: var(--green-dark);
+  color: var(--white);
+  border-color: var(--green-dark);
+}
+
+.ds-icons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-4);
+}
+
+.ds-icon-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.ds-icon-card:hover {
+  border-color: var(--green-primary);
+  background: var(--green-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.ds-icon-card .icon-preview {
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+}
+
+.ds-icon-card .icon-name {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-align: center;
+  word-break: break-all;
+}
+
+.ds-icon-card .copy-toast {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  background: var(--green-dark);
+  color: var(--white);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+}
+
+.ds-icon-card .copy-toast.show {
+  opacity: 1;
+}
+
+/* ── Component Examples ── */
+.ds-component-group {
+  margin-bottom: var(--space-8);
+}
+
+.ds-component-group h4 {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+  color: var(--text-dark);
+}
+
+.ds-component-row {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  align-items: center;
+  padding: var(--space-6);
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+}
+
+/* ── Code Block ── */
+.ds-code-block {
+  background: #1a1f2b;
+  color: #e2e5e9;
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-md);
+  font-family: 'Courier New', monospace;
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  overflow-x: auto;
+  margin: var(--space-4) 0;
+  position: relative;
+}
+
+.ds-code-block .copy-btn {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ds-code-block .copy-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--white);
+}
+
+.ds-code-keyword { color: #C792EA; }
+.ds-code-string { color: #C3E88D; }
+.ds-code-comment { color: #697098; }
+.ds-code-var { color: #F78C6C; }
+
+/* ── Rules Section ── */
+.ds-rule-card {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+.ds-rule-card h4 {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--green-dark);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ds-rule-card h4 svg {
+  width: 20px;
+  height: 20px;
+  color: var(--green-primary);
+}
+
+.ds-rule-card p, .ds-rule-card li {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.ds-rule-card ul {
+  padding-left: var(--space-6);
+  list-style: disc;
+  margin-top: var(--space-2);
+}
+
+.ds-rule-card ul li {
+  margin-bottom: var(--space-2);
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .ds-sidebar {
+    display: none;
+  }
+  .ds-main {
+    padding: var(--space-6) var(--space-4);
+  }
+}

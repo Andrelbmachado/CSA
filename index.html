@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSA — Comunidade que Sustenta a Agricultura</title>
+  <meta name="description" content="Plataforma agrícola conectando produtores rurais e consumidores. Marketplace, cursos, receitas e comunidade.">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/icons.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+</head>
+<body>
+
+  <!-- Header (rendered by JS) -->
+  <div id="app-header"></div>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span id="hero-badge-icon"></span>
+          Plataforma Agrícola Colaborativa
+        </div>
+        <h1>Conectando o <span>Campo</span> à sua <span>Mesa</span></h1>
+        <p>Descubra produtos frescos direto dos produtores, aprenda técnicas sustentáveis e faça parte de uma comunidade que valoriza a agricultura familiar.</p>
+        
+        <div class="hero-search">
+          <div class="input-group">
+            <span class="input-icon" id="hero-search-icon"></span>
+            <input type="text" placeholder="Buscar produtos, cursos, receitas...">
+          </div>
+          <button class="btn btn-primary btn-lg">Buscar</button>
+        </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <strong>500+</strong>
+            <span>Produtores</span>
+          </div>
+          <div class="hero-stat">
+            <strong>2.000+</strong>
+            <span>Produtos</span>
+          </div>
+          <div class="hero-stat">
+            <strong>50+</strong>
+            <span>Cursos</span>
+          </div>
+          <div class="hero-stat">
+            <strong>10k+</strong>
+            <span>Membros</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-decoration"></div>
+  </section>
+
+  <!-- CATEGORIES SECTION -->
+  <section class="categories-section">
+    <div class="container">
+      <h2 class="section-title">Categorias</h2>
+      <p class="section-subtitle">Explore nossos produtos por categoria</p>
+      <div class="categories-row" id="categories-row"></div>
+    </div>
+  </section>
+
+  <!-- FEATURED PRODUCTS -->
+  <section class="products-section">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Produtos em Destaque</h2>
+          <p class="section-subtitle" style="margin-bottom:0;">Frescos e direto do produtor</p>
+        </div>
+        <a href="marketplace.html" class="see-all">
+          Ver todos <span id="see-all-icon-products"></span>
+        </a>
+      </div>
+      <div class="grid grid-4" id="products-grid"></div>
+    </div>
+  </section>
+
+  <!-- PROMO BANNER -->
+  <section class="container">
+    <div class="promo-banner">
+      <div class="promo-content">
+        <h3>Torne-se um Produtor Parceiro</h3>
+        <p>Cadastre-se na CSA e comece a vender seus produtos para milhares de consumidores conscientes em todo o Brasil.</p>
+        <a href="perfil.html" class="btn btn-primary btn-lg">Cadastrar Agora</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- COURSES SECTION -->
+  <section class="courses-section">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Cursos Populares</h2>
+          <p class="section-subtitle" style="margin-bottom:0;">Aprenda técnicas sustentáveis</p>
+        </div>
+        <a href="cursos.html" class="see-all">
+          Ver todos <span id="see-all-icon-courses"></span>
+        </a>
+      </div>
+      <div class="courses-scroll" id="courses-scroll"></div>
+    </div>
+  </section>
+
+  <!-- RECIPES SECTION -->
+  <section class="recipes-section">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Receitas da Comunidade</h2>
+          <p class="section-subtitle" style="margin-bottom:0;">Do campo para a sua cozinha</p>
+        </div>
+        <a href="receitas.html" class="see-all">
+          Ver todos <span id="see-all-icon-recipes"></span>
+        </a>
+      </div>
+      <div class="grid grid-3" id="recipes-grid"></div>
+    </div>
+  </section>
+
+  <!-- Footer (rendered by JS) -->
+  <div id="app-footer"></div>
+
+  <script src="js/icons.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/home.js"></script>
+</body>
+</html>
