@@ -19,7 +19,7 @@
     <div class="auth-container">
       <div class="auth-card scale-in">
         <div class="auth-logo">
-          <div class="logo-circle" id="auth-logo-icon"></div>
+          <img src="assets/logo.png" alt="CSA" style="height:56px;margin:0 auto var(--space-3);">
           <h2>Bem-vindo à CSA</h2>
           <p>Acesse sua conta ou cadastre-se</p>
         </div>
@@ -117,10 +117,10 @@
   <script src="js/icons.js"></script>
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/admin-store.js"></script>
   <script>
     document.getElementById('app-header').innerHTML = renderHeader('');
     document.getElementById('app-footer').innerHTML = renderFooter();
-    document.getElementById('auth-logo-icon').innerHTML = Icons.leaf(28);
     initNotifications();
 
     let currentRole = 'user';
@@ -160,12 +160,16 @@
     function handleLogin(e) {
       e.preventDefault();
       const email = document.getElementById('login-email').value;
+      const name = email.split('@')[0];
       if (currentRole === 'admin') {
+        AdminStore.setAuth({ role: 'admin', name: name, email: email });
         showToast('Login de administrador realizado com sucesso!', 'lock');
+        setTimeout(() => { window.location.href = 'admin.html'; }, 1200);
       } else {
+        AdminStore.setAuth({ role: 'user', name: name, email: email });
         showToast('Login realizado com sucesso!', 'check');
+        setTimeout(() => { window.location.href = 'perfil.html'; }, 1200);
       }
-      setTimeout(() => { window.location.href = 'perfil.html'; }, 1200);
     }
 
     function handleRegister(e) {
@@ -182,9 +186,14 @@
           showToast('Informe o código de administrador!', 'close');
           return;
         }
+        AdminStore.setAuth({ role: 'admin', name: document.getElementById('reg-name').value, email: document.getElementById('reg-email').value });
+        showToast('Conta admin criada! Bem-vindo à CSA.', 'check');
+        setTimeout(() => { window.location.href = 'admin.html'; }, 1200);
+      } else {
+        AdminStore.setAuth({ role: 'user', name: document.getElementById('reg-name').value, email: document.getElementById('reg-email').value });
+        showToast('Conta criada com sucesso! Bem-vindo à CSA.', 'check');
+        setTimeout(() => { window.location.href = 'perfil.html'; }, 1200);
       }
-      showToast('Conta criada com sucesso! Bem-vindo à CSA.', 'check');
-      setTimeout(() => { window.location.href = 'perfil.html'; }, 1200);
     }
 
     // Init

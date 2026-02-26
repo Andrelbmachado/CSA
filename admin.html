@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin — CSA</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/icons.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+</head>
+<body>
+  <div id="app-header"></div>
+
+  <div class="admin-layout" id="admin-app">
+    <!-- Sidebar rendered by JS -->
+    <aside class="admin-sidebar" id="admin-sidebar"></aside>
+    <!-- Main content rendered by JS -->
+    <main class="admin-main" id="admin-main"></main>
+  </div>
+
+  <!-- Modals -->
+  <div class="admin-modal-overlay" id="modal-overlay">
+    <div class="admin-modal" id="modal-container"></div>
+  </div>
+
+  <div class="lesson-editor-overlay" id="lesson-overlay">
+    <div class="lesson-editor" id="lesson-container"></div>
+  </div>
+
+  <script src="js/icons.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/admin-store.js"></script>
+  <script>
+    // ── Init ──
+    document.getElementById('app-header').innerHTML = renderHeader('');
+    initNotifications();
+
+    // Check admin auth
+    const auth = AdminStore.getAuth();
+    if (!auth || auth.role !== 'admin') {
+      window.location.href = 'login.html';
+    }
+
+    // ── State ──
+    let currentSection = 'dashboard';
+    let editingProduct = null;
+    let editingCourse = null;
+    let editingLessonCtx = null; // {courseId, sectionId, lessonId}
+
+    const ICON_OPTIONS = ['apple','plant','leaf','farm','seed','sun','waterDrop','wheat','recipe','tractor'];
+    const GRADIENT_OPTIONS = ['green','yellow','cream','brown','orange','purple','red','blue'];
+    const CATEGORY_OPTIONS = ['cestas','hortalicas','laticinios','conservas','graos','bebidas'];
+    const COURSE_CATEGORY_OPTIONS = ['horta','pecuaria','solo','agroecologia','processamento','tecnologia'];
+    const LEVEL_OPTIONS = ['Iniciante','Intermediário','Avançado'];
+
+    // ── Render Sidebar ──
+    function renderSidebar() {
+      document.getElementById('admin-sidebar').innerHTML = `
+        <div class="admin-sidebar-header">
+          <h3>Administração</h3>
+          <div class="admin-badge">${Icons.lock(12)} Admin</div>
+        </div>
+        <nav class="admin-nav">
+          <button class="admin-nav-item ${currentSection === 'dashboard' ? 'active' : ''}" onclick="navigateTo('dashboard')">
+            ${Icons.home(18)} Dashboard
+          </button>
+          <button class="admin-nav-item ${currentSection === 'products' ? 'active' : ''}" onclick="navigateTo('products')">
+            ${Icons.marketplace(18)} Produtos
+          </button>
+          <button class="admin-nav-item ${currentSection === 'courses' ? 'active' : ''}" onclick="navigateTo('courses')">
+            ${Icons.course(18)} Cursos
+          </button>
+          <div class="admin-nav-divider"></div>
+          <button class="admin-nav-item ${currentSection === 'orders' ? 'active' : ''}" onclick="navigateTo('orders')">
+            ${Icons.cart(18)} Pedidos
+          </button>
+          <button class="admin-nav-item ${currentSection === 'members' ? 'active' : ''}" onclick="navigateTo('members')">
+            ${Icons.members(18)} Integrantes
+          </button>
+          <div class="admin-nav-divider"></div>
+          <button class="admin-nav-item" onclick="window.location.href='index.html'" style="color:var(--text-muted);">
+            ${Icons.externalLink(18)} Ver Site
+          </button>
+          <button class="admin-nav-item" onclick="AdminStore.logout();window.location.href='login.html'" style="color:var(--error);">
+            ${Icons.lock(18)} Sair
+          </button>
+        </nav>
+      `;
+    }
+
+    // ── Navigation ──
+    function navigateTo(section) {
+      currentSection = section;
+      renderSidebar();
+      renderMain();
+    }
+
+    // ── Render Main Content ──
+    function renderMain() {
+      const main = document.getElementById('admin-main');
+      switch(currentSection) {
+        case 'dashboard': renderDashboard(main); break;
+        case 'products':  renderProductsPage(main); break;
+        case 'courses':   renderCoursesPage(main); break;
+        case 'orders':    renderOrdersPage(main); break;
+        case 'members':   renderMembersPage(main); break;
+        default:          renderDashboard(main);
+      }
+    }
+
+    // ══════════════════════════════════════════════
+    //  DASHBOARD
+    // ══════════════════════════════════════════════
+    function renderDashboard(el) {
+      const products = AdminStore.getProducts();
+      const courses = AdminStore.getCourses();
+      const activeProducts = products.filter(p => p.status === 'active').length;
+      const activeCourses = courses.filter(c => c.status === 'active').length;
+      const totalStock = products.reduce((s, p) => s + (p.stock || 0), 0);
+      const totalStudents = courses.reduce((s, c) => s + (c.students || 0), 0);
+
+      el.innerHTML = `
+        <div class="admin-topbar">
+          <div>
+            <h1>Dashboard</h1>
+            <p style="color:var(--text-muted);font-size:var(--font-size-sm);">Visão geral da plataforma CSA</p>
+          </div>
+          <div class="admin-topbar-actions">
+            <button class="btn btn-primary" onclick="openProductModal()">
+              ${Icons.plus(16)} Novo Produto
+            </button>
+            <button class="btn btn-dark" onclick="openCourseModal()">
+              ${Icons.plus(16)} Novo Curso
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-stats">
+          <div class="admin-stat-card fade-in-up stagger-1">
+            <div class="admin-stat-icon green">${Icons.marketplace(24)}</div>
+            <div class="admin-stat-info">
+              <strong>${activeProducts}</strong>
+              <span>Produtos Ativos</span>
+              <span class="stat-change">+${products.filter(p => p.status === 'draft').length} rascunhos</span>
+            </div>
+          </div>
+          <div class="admin-stat-card fade-in-up stagger-2">
+            <div class="admin-stat-icon blue">${Icons.course(24)}</div>
+            <div class="admin-stat-info">
+              <strong>${activeCourses}</strong>
+              <span>Cursos Ativos</span>
+              <span class="stat-change">${courses.reduce((s, c) => s + (c.sections||[]).length, 0)} capítulos</span>
+            </div>
+          </div>
+          <div class="admin-stat-card fade-in-up stagger-3">
+            <div class="admin-stat-icon orange">${Icons.apple(24)}</div>
+            <div class="admin-stat-info">
+              <strong>${totalStock}</strong>
+              <span>Itens em Estoque</span>
+              <span class="stat-change">${products.filter(p => (p.stock||0) < 20).length} baixo estoque</span>
+            </div>
+          </div>
+          <div class="admin-stat-card fade-in-up stagger-4">
+            <div class="admin-stat-icon purple">${Icons.users(24)}</div>
+            <div class="admin-stat-info">
+              <strong>${totalStudents.toLocaleString('pt-BR')}</strong>
+              <span>Alunos Matriculados</span>
+              <span class="stat-change">Em todos os cursos</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Products -->
+        <div class="admin-table-wrapper fade-in-up stagger-5">
+          <div class="admin-table-header">
+            <h3>${Icons.marketplace(20)} Produtos Recentes</h3>
+            <button class="btn btn-ghost btn-sm" onclick="navigateTo('products')">Ver todos ${Icons.chevronRight(14)}</button>
+          </div>
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Preço</th>
+                <th>Estoque</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${products.slice(0, 5).map(p => `
+                <tr>
+                  <td>
+                    <div class="td-product">
+                      <div class="td-icon ${p.gradient || 'green'}">${Icons[p.icon] ? Icons[p.icon](20) : Icons.apple(20)}</div>
+                      <div>
+                        <div class="td-name">${p.name}</div>
+                        <div class="td-sub">${p.producer || 'CSA'} · ${p.category || ''}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><strong>${formatBRL(p.price)}</strong> <small style="color:var(--text-muted);">${p.unit || ''}</small></td>
+                  <td>${(p.stock||0) < 20 ? '<span style="color:var(--error);font-weight:600;">' + (p.stock||0) + '</span>' : (p.stock||0)}</td>
+                  <td><span class="status-badge ${p.status || 'active'}">${p.status === 'draft' ? 'Rascunho' : p.status === 'inactive' ? 'Inativo' : 'Ativo'}</span></td>
+                  <td class="td-actions">
+                    <button class="admin-action-btn" onclick="openProductModal(${p.id})" data-tooltip="Editar">${Icons.edit(14)}</button>
+                    <button class="admin-action-btn danger" onclick="confirmDeleteProduct(${p.id})" data-tooltip="Excluir">${Icons.trash(14)}</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Recent Courses -->
+        <div class="admin-table-wrapper fade-in-up stagger-6">
+          <div class="admin-table-header">
+            <h3>${Icons.course(20)} Cursos Recentes</h3>
+            <button class="btn btn-ghost btn-sm" onclick="navigateTo('courses')">Ver todos ${Icons.chevronRight(14)}</button>
+          </div>
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Curso</th>
+                <th>Preço</th>
+                <th>Alunos</th>
+                <th>Capítulos</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${courses.slice(0, 5).map(c => `
+                <tr>
+                  <td>
+                    <div class="td-course">
+                      <div class="td-icon ${c.gradient || 'green'}">${Icons[c.icon] ? Icons[c.icon](20) : Icons.course(20)}</div>
+                      <div>
+                        <div class="td-name">${c.title}</div>
+                        <div class="td-sub">${c.instructor || ''} · ${c.level || ''}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><strong>${c.price > 0 ? formatBRL(c.price) : 'Grátis'}</strong></td>
+                  <td>${(c.students||0).toLocaleString('pt-BR')}</td>
+                  <td>${(c.sections||[]).length} caps · ${(c.sections||[]).reduce((s, sec) => s + sec.lessons.length, 0)} aulas</td>
+                  <td><span class="status-badge ${c.status || 'active'}">${c.status === 'draft' ? 'Rascunho' : c.status === 'inactive' ? 'Inativo' : 'Ativo'}</span></td>
+                  <td class="td-actions">
+                    <button class="admin-action-btn" onclick="openCourseModal(${c.id})" data-tooltip="Editar">${Icons.edit(14)}</button>
+                    <button class="admin-action-btn danger" onclick="confirmDeleteCourse(${c.id})" data-tooltip="Excluir">${Icons.trash(14)}</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      setTimeout(initScrollAnimations, 100);
+    }
+
+    // ══════════════════════════════════════════════
+    //  PRODUCTS PAGE
+    // ══════════════════════════════════════════════
+    function renderProductsPage(el) {
+      const products = AdminStore.getProducts();
+      el.innerHTML = `
+        <div class="admin-topbar">
+          <div>
+            <h1>Produtos</h1>
+            <p style="color:var(--text-muted);font-size:var(--font-size-sm);">${products.length} produtos cadastrados</p>
+          </div>
+          <div class="admin-topbar-actions">
+            <div class="input-group" style="min-width:220px;">
+              <span class="input-icon">${Icons.search(16)}</span>
+              <input type="text" placeholder="Buscar produto..." id="product-search" oninput="filterProducts()">
+            </div>
+            <button class="btn btn-primary" onclick="openProductModal()">
+              ${Icons.plus(16)} Novo Produto
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-table-wrapper" id="products-table-wrapper">
+          ${renderProductsTable(products)}
+        </div>
+      `;
+    }
+
+    function renderProductsTable(products) {
+      if (products.length === 0) {
+        return `<div class="admin-empty">
+          ${Icons.marketplace(48)}
+          <h3>Nenhum produto cadastrado</h3>
+          <p>Comece adicionando seu primeiro produto ao marketplace.</p>
+          <button class="btn btn-primary" onclick="openProductModal()">${Icons.plus(16)} Adicionar Produto</button>
+        </div>`;
+      }
+      return `
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Preço</th>
+              <th>Estoque</th>
+              <th>Categoria</th>
+              <th>Avaliação</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${products.map(p => `
+              <tr>
+                <td>
+                  <div class="td-product">
+                    <div class="td-icon ${p.gradient || 'green'}">${Icons[p.icon] ? Icons[p.icon](20) : Icons.apple(20)}</div>
+                    <div>
+                      <div class="td-name">${p.name}</div>
+                      <div class="td-sub">${p.producer || ''} · ${p.location || ''}</div>
+                    </div>
+                  </div>
+                </td>
+                <td><strong>${formatBRL(p.price)}</strong> <small style="color:var(--text-muted);">${p.unit || ''}</small></td>
+                <td>${(p.stock||0) < 20 ? '<span style="color:var(--error);font-weight:600;">' + (p.stock||0) + '</span>' : (p.stock||0)}</td>
+                <td><span class="badge badge-green" style="text-transform:capitalize;">${p.category || '-'}</span></td>
+                <td>${renderStars(p.rating || 0)} <small style="color:var(--text-muted);">(${p.reviews || 0})</small></td>
+                <td><span class="status-badge ${p.status || 'active'}">${p.status === 'draft' ? 'Rascunho' : p.status === 'inactive' ? 'Inativo' : 'Ativo'}</span></td>
+                <td class="td-actions">
+                  <button class="admin-action-btn" onclick="openProductModal(${p.id})" data-tooltip="Editar">${Icons.edit(14)}</button>
+                  <button class="admin-action-btn" onclick="duplicateProduct(${p.id})" data-tooltip="Duplicar">${Icons.copy(14)}</button>
+                  <button class="admin-action-btn danger" onclick="confirmDeleteProduct(${p.id})" data-tooltip="Excluir">${Icons.trash(14)}</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function filterProducts() {
+      const q = (document.getElementById('product-search')?.value || '').toLowerCase();
+      const products = AdminStore.getProducts().filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.producer || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q)
+      );
+      document.getElementById('products-table-wrapper').innerHTML = renderProductsTable(products);
+    }
+
+    // ══════════════════════════════════════════════
+    //  PRODUCT MODAL
+    // ══════════════════════════════════════════════
+    function openProductModal(id) {
+      editingProduct = id ? AdminStore.getProducts().find(p => p.id === id) : null;
+      const p = editingProduct || {};
+      const isEdit = !!editingProduct;
+
+      document.getElementById('modal-container').innerHTML = `
+        <div class="admin-modal-header">
+          <h2>${Icons.marketplace(22)} ${isEdit ? 'Editar Produto' : 'Novo Produto'}</h2>
+          <button class="admin-action-btn" onclick="closeModal()">${Icons.close(18)}</button>
+        </div>
+        <div class="admin-modal-body">
+          <div class="admin-tabs" id="product-tabs">
+            <button class="admin-tab active" onclick="switchProductTab('info')">Informações</button>
+            <button class="admin-tab" onclick="switchProductTab('details')">Detalhes</button>
+            <button class="admin-tab" onclick="switchProductTab('media')">Mídia</button>
+          </div>
+
+          <!-- Info Tab -->
+          <div id="product-tab-info">
+            <div class="admin-form-grid">
+              <div class="admin-form-group">
+                <label>Nome do Produto <span class="required">*</span></label>
+                <input type="text" id="p-name" value="${p.name || ''}" placeholder="Ex: Cesta Orgânica Família">
+              </div>
+              <div class="admin-form-group">
+                <label>Produtor</label>
+                <input type="text" id="p-producer" value="${p.producer || ''}" placeholder="Ex: Sítio Boa Vista">
+              </div>
+              <div class="admin-form-group">
+                <label>Preço <span class="required">*</span></label>
+                <input type="number" id="p-price" value="${p.price || ''}" placeholder="0.00" step="0.01" min="0">
+              </div>
+              <div class="admin-form-group">
+                <label>Unidade</label>
+                <select id="p-unit">
+                  ${['/unid','/kg','/semana','/200g','/dz','/kit','/lt'].map(u =>
+                    `<option value="${u}" ${p.unit === u ? 'selected' : ''}>${u}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label>Estoque Disponível <span class="required">*</span></label>
+                <input type="number" id="p-stock" value="${p.stock || 0}" min="0">
+              </div>
+              <div class="admin-form-group">
+                <label>Categoria</label>
+                <select id="p-category">
+                  ${CATEGORY_OPTIONS.map(c =>
+                    `<option value="${c}" ${p.category === c ? 'selected' : ''}>${c.charAt(0).toUpperCase() + c.slice(1)}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label>Status</label>
+                <select id="p-status">
+                  <option value="active" ${(p.status||'active') === 'active' ? 'selected' : ''}>Ativo</option>
+                  <option value="draft" ${p.status === 'draft' ? 'selected' : ''}>Rascunho</option>
+                  <option value="inactive" ${p.status === 'inactive' ? 'selected' : ''}>Inativo</option>
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label>Badge / Selo</label>
+                <input type="text" id="p-badge" value="${p.badge || ''}" placeholder="Ex: Orgânico, Artesanal...">
+              </div>
+              <div class="admin-form-group full">
+                <label>Descrição</label>
+                <textarea id="p-description" rows="3" placeholder="Descreva o produto em detalhes...">${p.description || ''}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Details Tab -->
+          <div id="product-tab-details" style="display:none;">
+            <div class="admin-form-grid">
+              <div class="admin-form-group">
+                <label>Localização / Origem</label>
+                <input type="text" id="p-location" value="${p.location || ''}" placeholder="Ex: Campinas-SP">
+              </div>
+              <div class="admin-form-group">
+                <label>Avaliação (1-5)</label>
+                <input type="number" id="p-rating" value="${p.rating || 4.5}" min="1" max="5" step="0.1">
+              </div>
+              <div class="admin-form-group">
+                <label>Nº de Avaliações</label>
+                <input type="number" id="p-reviews" value="${p.reviews || 0}" min="0">
+              </div>
+              <div class="admin-form-group">
+                <label>Peso / Volume</label>
+                <input type="text" id="p-weight" value="${p.weight || ''}" placeholder="Ex: 500g, 1L...">
+              </div>
+              <div class="admin-form-group full">
+                <label>Informações Adicionais</label>
+                <textarea id="p-extra" rows="3" placeholder="Informações nutricionais, modo de conservação, certificações...">${p.extra || ''}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Media Tab -->
+          <div id="product-tab-media" style="display:none;">
+            <div class="admin-form-grid">
+              <div class="admin-form-group">
+                <label>Ícone</label>
+                <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
+                  ${ICON_OPTIONS.map(ic => `
+                    <button type="button" class="admin-action-btn icon-pick ${(p.icon||'apple') === ic ? 'active' : ''}" data-icon="${ic}" onclick="pickProductIcon('${ic}')" style="${(p.icon||'apple') === ic ? 'border-color:var(--green-primary);background:var(--green-light);color:var(--green-dark);' : ''}" data-tooltip="${ic}">
+                      ${Icons[ic](18)}
+                    </button>
+                  `).join('')}
+                </div>
+                <input type="hidden" id="p-icon" value="${p.icon || 'apple'}">
+              </div>
+              <div class="admin-form-group">
+                <label>Cor / Gradiente</label>
+                <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
+                  ${GRADIENT_OPTIONS.map(g => `
+                    <button type="button" class="admin-action-btn grad-pick" data-gradient="${g}" onclick="pickProductGradient('${g}')" style="width:32px;height:32px;border-radius:50%;${(p.gradient||'green') === g ? 'ring: 2px solid var(--green-primary);box-shadow:0 0 0 2px var(--green-primary);' : ''}" data-tooltip="${g}">
+                      <div style="width:20px;height:20px;border-radius:50%;" class="img-placeholder ${g}"></div>
+                    </button>
+                  `).join('')}
+                </div>
+                <input type="hidden" id="p-gradient" value="${p.gradient || 'green'}">
+              </div>
+              <div class="admin-form-group full">
+                <label>Imagem do Produto</label>
+                <div class="file-upload-area" onclick="showToast('Upload de imagens em breve!','upload')">
+                  ${Icons.upload(32)}
+                  <p>Clique para fazer upload</p>
+                  <span class="file-types">PNG, JPG, WEBP até 5MB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="admin-modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveProduct()">
+            ${Icons.check(16)} ${isEdit ? 'Salvar Alterações' : 'Criar Produto'}
+          </button>
+        </div>
+      `;
+      openModal();
+    }
+
+    function switchProductTab(tab) {
+      ['info','details','media'].forEach(t => {
+        document.getElementById('product-tab-' + t).style.display = t === tab ? 'block' : 'none';
+      });
+      document.querySelectorAll('#product-tabs .admin-tab').forEach((btn, i) => {
+        btn.classList.toggle('active', ['info','details','media'][i] === tab);
+      });
+    }
+
+    function pickProductIcon(icon) {
+      document.getElementById('p-icon').value = icon;
+      document.querySelectorAll('.icon-pick').forEach(btn => {
+        const isActive = btn.dataset.icon === icon;
+        btn.style.borderColor = isActive ? 'var(--green-primary)' : '';
+        btn.style.background = isActive ? 'var(--green-light)' : '';
+        btn.style.color = isActive ? 'var(--green-dark)' : '';
+      });
+    }
+
+    function pickProductGradient(gradient) {
+      document.getElementById('p-gradient').value = gradient;
+      document.querySelectorAll('.grad-pick').forEach(btn => {
+        const isActive = btn.dataset.gradient === gradient;
+        btn.style.boxShadow = isActive ? '0 0 0 2px var(--green-primary)' : 'none';
+      });
+    }
+
+    function saveProduct() {
+      const name = document.getElementById('p-name').value.trim();
+      const price = parseFloat(document.getElementById('p-price').value);
+      if (!name) { showToast('Informe o nome do produto!', 'close'); return; }
+      if (isNaN(price) || price < 0) { showToast('Informe um preço válido!', 'close'); return; }
+
+      const data = {
+        name,
+        price,
+        producer: document.getElementById('p-producer').value.trim(),
+        unit: document.getElementById('p-unit').value,
+        stock: parseInt(document.getElementById('p-stock').value) || 0,
+        category: document.getElementById('p-category').value,
+        status: document.getElementById('p-status').value,
+        badge: document.getElementById('p-badge').value.trim(),
+        description: document.getElementById('p-description').value.trim(),
+        location: document.getElementById('p-location').value.trim(),
+        rating: parseFloat(document.getElementById('p-rating').value) || 4.5,
+        reviews: parseInt(document.getElementById('p-reviews').value) || 0,
+        weight: document.getElementById('p-weight')?.value.trim() || '',
+        extra: document.getElementById('p-extra')?.value.trim() || '',
+        icon: document.getElementById('p-icon').value,
+        gradient: document.getElementById('p-gradient').value,
+      };
+
+      if (editingProduct) {
+        AdminStore.updateProduct(editingProduct.id, data);
+        showToast('Produto atualizado com sucesso!', 'check');
+      } else {
+        AdminStore.addProduct(data);
+        showToast('Produto criado com sucesso!', 'check');
+      }
+      closeModal();
+      renderMain();
+    }
+
+    function confirmDeleteProduct(id) {
+      const p = AdminStore.getProducts().find(x => x.id === id);
+      if (!p) return;
+      if (confirm(`Excluir "${p.name}"? Esta ação não pode ser desfeita.`)) {
+        AdminStore.deleteProduct(id);
+        showToast('Produto excluído!', 'trash');
+        renderMain();
+      }
+    }
+
+    function duplicateProduct(id) {
+      const p = AdminStore.getProducts().find(x => x.id === id);
+      if (!p) return;
+      AdminStore.addProduct({ ...p, name: p.name + ' (Cópia)', id: undefined, status: 'draft' });
+      showToast('Produto duplicado como rascunho!', 'copy');
+      renderMain();
+    }
+
+    // ══════════════════════════════════════════════
+    //  COURSES PAGE
+    // ══════════════════════════════════════════════
+    function renderCoursesPage(el) {
+      const courses = AdminStore.getCourses();
+      el.innerHTML = `
+        <div class="admin-topbar">
+          <div>
+            <h1>Cursos</h1>
+            <p style="color:var(--text-muted);font-size:var(--font-size-sm);">${courses.length} cursos cadastrados</p>
+          </div>
+          <div class="admin-topbar-actions">
+            <div class="input-group" style="min-width:220px;">
+              <span class="input-icon">${Icons.search(16)}</span>
+              <input type="text" placeholder="Buscar curso..." id="course-search" oninput="filterCourses()">
+            </div>
+            <button class="btn btn-primary" onclick="openCourseModal()">
+              ${Icons.plus(16)} Novo Curso
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-table-wrapper" id="courses-table-wrapper">
+          ${renderCoursesTable(courses)}
+        </div>
+      `;
+    }
+
+    function renderCoursesTable(courses) {
+      if (courses.length === 0) {
+        return `<div class="admin-empty">
+          ${Icons.course(48)}
+          <h3>Nenhum curso cadastrado</h3>
+          <p>Crie seu primeiro curso com capítulos e aulas.</p>
+          <button class="btn btn-primary" onclick="openCourseModal()">${Icons.plus(16)} Criar Curso</button>
+        </div>`;
+      }
+      return `
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Curso</th>
+              <th>Preço</th>
+              <th>Alunos</th>
+              <th>Estrutura</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${courses.map(c => `
+              <tr>
+                <td>
+                  <div class="td-course">
+                    <div class="td-icon ${c.gradient || 'green'}">${Icons[c.icon] ? Icons[c.icon](20) : Icons.course(20)}</div>
+                    <div>
+                      <div class="td-name">${c.title}</div>
+                      <div class="td-sub">${c.instructor || ''} · ${c.level || ''} · ${c.duration || ''}</div>
+                    </div>
+                  </div>
+                </td>
+                <td><strong>${c.price > 0 ? formatBRL(c.price) : 'Grátis'}</strong></td>
+                <td>${(c.students||0).toLocaleString('pt-BR')}</td>
+                <td>
+                  <span style="font-size:var(--font-size-xs);">
+                    ${(c.sections||[]).length} capítulos ·
+                    ${(c.sections||[]).reduce((s, sec) => s + sec.lessons.length, 0)} aulas
+                  </span>
+                </td>
+                <td><span class="status-badge ${c.status || 'active'}">${c.status === 'draft' ? 'Rascunho' : c.status === 'inactive' ? 'Inativo' : 'Ativo'}</span></td>
+                <td class="td-actions">
+                  <button class="admin-action-btn" onclick="openCourseModal(${c.id})" data-tooltip="Editar">${Icons.edit(14)}</button>
+                  <button class="admin-action-btn danger" onclick="confirmDeleteCourse(${c.id})" data-tooltip="Excluir">${Icons.trash(14)}</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function filterCourses() {
+      const q = (document.getElementById('course-search')?.value || '').toLowerCase();
+      const courses = AdminStore.getCourses().filter(c =>
+        c.title.toLowerCase().includes(q) ||
+        (c.instructor || '').toLowerCase().includes(q)
+      );
+      document.getElementById('courses-table-wrapper').innerHTML = renderCoursesTable(courses);
+    }
+
+    // ══════════════════════════════════════════════
+    //  COURSE MODAL (with section/lesson builder)
+    // ══════════════════════════════════════════════
+    function openCourseModal(id) {
+      editingCourse = id ? AdminStore.getCourses().find(c => c.id === id) : null;
+      const c = editingCourse || {};
+      const isEdit = !!editingCourse;
+
+      document.getElementById('modal-container').innerHTML = `
+        <div class="admin-modal-header">
+          <h2>${Icons.course(22)} ${isEdit ? 'Editar Curso' : 'Novo Curso'}</h2>
+          <button class="admin-action-btn" onclick="closeModal()">${Icons.close(18)}</button>
+        </div>
+        <div class="admin-modal-body">
+          <div class="admin-tabs" id="course-tabs">
+            <button class="admin-tab active" onclick="switchCourseTab('info')">Informações</button>
+            <button class="admin-tab" onclick="switchCourseTab('content')">Conteúdo</button>
+            <button class="admin-tab" onclick="switchCourseTab('media')">Mídia</button>
+          </div>
+
+          <!-- Info Tab -->
+          <div id="course-tab-info">
+            <div class="admin-form-grid">
+              <div class="admin-form-group full">
+                <label>Título do Curso <span class="required">*</span></label>
+                <input type="text" id="c-title" value="${c.title || ''}" placeholder="Ex: Horta Orgânica em Casa">
+              </div>
+              <div class="admin-form-group">
+                <label>Instrutor <span class="required">*</span></label>
+                <input type="text" id="c-instructor" value="${c.instructor || ''}" placeholder="Nome do instrutor">
+              </div>
+              <div class="admin-form-group">
+                <label>Iniciais do Avatar</label>
+                <input type="text" id="c-avatar" value="${c.avatar || ''}" placeholder="Ex: MS" maxlength="2">
+              </div>
+              <div class="admin-form-group">
+                <label>Preço</label>
+                <input type="number" id="c-price" value="${c.price || 0}" step="0.01" min="0" placeholder="0 = Grátis">
+                <span class="help-text">Use 0 para cursos gratuitos</span>
+              </div>
+              <div class="admin-form-group">
+                <label>Duração</label>
+                <input type="text" id="c-duration" value="${c.duration || ''}" placeholder="Ex: 8h, 12h">
+              </div>
+              <div class="admin-form-group">
+                <label>Nível</label>
+                <select id="c-level">
+                  ${LEVEL_OPTIONS.map(l =>
+                    `<option value="${l}" ${c.level === l ? 'selected' : ''}>${l}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label>Categoria</label>
+                <select id="c-category">
+                  ${COURSE_CATEGORY_OPTIONS.map(cat =>
+                    `<option value="${cat}" ${c.category === cat ? 'selected' : ''}>${cat.charAt(0).toUpperCase() + cat.slice(1)}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label>Nº de Módulos</label>
+                <input type="number" id="c-modules" value="${c.modules || 0}" min="0">
+              </div>
+              <div class="admin-form-group">
+                <label>Status</label>
+                <select id="c-status">
+                  <option value="active" ${(c.status||'active') === 'active' ? 'selected' : ''}>Ativo</option>
+                  <option value="draft" ${c.status === 'draft' ? 'selected' : ''}>Rascunho</option>
+                  <option value="inactive" ${c.status === 'inactive' ? 'selected' : ''}>Inativo</option>
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label>Badge / Selo</label>
+                <input type="text" id="c-badge" value="${c.badge || ''}" placeholder="Ex: Novo, Popular...">
+              </div>
+              <div class="admin-form-group full">
+                <label>Descrição do Curso</label>
+                <textarea id="c-description" rows="3" placeholder="Descreva o conteúdo e objetivos do curso...">${c.description || ''}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Content Tab (Section/Lesson Builder) -->
+          <div id="course-tab-content" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+              <div>
+                <h3 style="font-size:var(--font-size-lg);margin:0;">Estrutura do Curso</h3>
+                <p style="font-size:var(--font-size-xs);color:var(--text-muted);">Organize capítulos e aulas</p>
+              </div>
+            </div>
+            <div class="course-builder" id="course-builder">
+              ${renderCourseSections(c)}
+            </div>
+            <button type="button" class="add-section-btn" onclick="handleAddSection()" style="margin-top:var(--space-4);">
+              ${Icons.plus(16)} Adicionar Capítulo
+            </button>
+          </div>
+
+          <!-- Media Tab -->
+          <div id="course-tab-media" style="display:none;">
+            <div class="admin-form-grid">
+              <div class="admin-form-group">
+                <label>Ícone</label>
+                <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
+                  ${ICON_OPTIONS.map(ic => `
+                    <button type="button" class="admin-action-btn cicon-pick" data-icon="${ic}" onclick="pickCourseIcon('${ic}')" style="${(c.icon||'plant') === ic ? 'border-color:var(--green-primary);background:var(--green-light);color:var(--green-dark);' : ''}" data-tooltip="${ic}">
+                      ${Icons[ic](18)}
+                    </button>
+                  `).join('')}
+                </div>
+                <input type="hidden" id="c-icon" value="${c.icon || 'plant'}">
+              </div>
+              <div class="admin-form-group">
+                <label>Cor / Gradiente</label>
+                <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
+                  ${GRADIENT_OPTIONS.map(g => `
+                    <button type="button" class="admin-action-btn cgrad-pick" data-gradient="${g}" onclick="pickCourseGradient('${g}')" style="width:32px;height:32px;border-radius:50%;${(c.gradient||'green') === g ? 'box-shadow:0 0 0 2px var(--green-primary);' : ''}" data-tooltip="${g}">
+                      <div style="width:20px;height:20px;border-radius:50%;" class="img-placeholder ${g}"></div>
+                    </button>
+                  `).join('')}
+                </div>
+                <input type="hidden" id="c-gradient" value="${c.gradient || 'green'}">
+              </div>
+              <div class="admin-form-group full">
+                <label>Imagem de Capa</label>
+                <div class="file-upload-area" onclick="showToast('Upload de imagens em breve!','upload')">
+                  ${Icons.upload(32)}
+                  <p>Clique para fazer upload da capa</p>
+                  <span class="file-types">PNG, JPG, WEBP até 5MB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="admin-modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveCourse()">
+            ${Icons.check(16)} ${isEdit ? 'Salvar Alterações' : 'Criar Curso'}
+          </button>
+        </div>
+      `;
+      openModal();
+    }
+
+    function switchCourseTab(tab) {
+      ['info','content','media'].forEach(t => {
+        document.getElementById('course-tab-' + t).style.display = t === tab ? 'block' : 'none';
+      });
+      document.querySelectorAll('#course-tabs .admin-tab').forEach((btn, i) => {
+        btn.classList.toggle('active', ['info','content','media'][i] === tab);
+      });
+    }
+
+    function pickCourseIcon(icon) {
+      document.getElementById('c-icon').value = icon;
+      document.querySelectorAll('.cicon-pick').forEach(btn => {
+        const isActive = btn.dataset.icon === icon;
+        btn.style.borderColor = isActive ? 'var(--green-primary)' : '';
+        btn.style.background = isActive ? 'var(--green-light)' : '';
+        btn.style.color = isActive ? 'var(--green-dark)' : '';
+      });
+    }
+
+    function pickCourseGradient(gradient) {
+      document.getElementById('c-gradient').value = gradient;
+      document.querySelectorAll('.cgrad-pick').forEach(btn => {
+        const isActive = btn.dataset.gradient === gradient;
+        btn.style.boxShadow = isActive ? '0 0 0 2px var(--green-primary)' : 'none';
+      });
+    }
+
+    // ── Section / Lesson Builder Rendering ──
+    function renderCourseSections(course) {
+      const sections = course.sections || [];
+      if (sections.length === 0) {
+        return `<div class="admin-empty" style="padding:var(--space-8);">
+          ${Icons.course(36)}
+          <h3 style="font-size:var(--font-size-base);">Nenhum capítulo ainda</h3>
+          <p>Adicione capítulos e aulas para estruturar seu curso.</p>
+        </div>`;
+      }
+      return sections.map((section, si) => `
+        <div class="course-section">
+          <div class="course-section-header">
+            <h4>
+              <span style="color:var(--muted-gray);font-size:var(--font-size-xs);">≡</span>
+              <span class="badge badge-green" style="font-size:10px;">Cap ${si + 1}</span>
+              ${section.title}
+              <small style="color:var(--text-muted);font-weight:400;margin-left:var(--space-2);">(${section.lessons.length} aula${section.lessons.length !== 1 ? 's' : ''})</small>
+            </h4>
+            <div class="section-actions">
+              <button class="admin-action-btn" onclick="editSectionTitle(${si})" data-tooltip="Renomear">${Icons.edit(12)}</button>
+              <button class="admin-action-btn danger" onclick="handleDeleteSection(${si})" data-tooltip="Excluir">${Icons.trash(12)}</button>
+            </div>
+          </div>
+          <div class="course-section-body">
+            ${section.lessons.map((lesson, li) => `
+              <div class="course-lesson">
+                <span class="lesson-drag">≡</span>
+                <div class="lesson-icon ${lesson.type}">
+                  ${lesson.type === 'video' ? Icons.eye(16) : lesson.type === 'pdf' ? Icons.download(16) : Icons.edit(16)}
+                </div>
+                <div class="lesson-info">
+                  <span class="lesson-name">${lesson.title}</span>
+                  <span class="lesson-meta">
+                    ${lesson.type === 'video' ? '🎥 Vídeo' : lesson.type === 'pdf' ? '📄 PDF' : '📝 Texto'}
+                    ${lesson.duration ? ' · ' + lesson.duration : ''}
+                    ${lesson.transcription ? ' · Transcrição ✓' : ''}
+                    ${lesson.notes ? ' · Notas ✓' : ''}
+                  </span>
+                </div>
+                <div class="lesson-actions">
+                  <button class="admin-action-btn" onclick="openLessonEditor(${si}, ${li})" data-tooltip="Editar aula">${Icons.edit(12)}</button>
+                  <button class="admin-action-btn danger" onclick="handleDeleteLesson(${si}, ${li})" data-tooltip="Excluir">${Icons.trash(12)}</button>
+                </div>
+              </div>
+            `).join('')}
+            <button type="button" class="add-lesson-btn" onclick="openLessonEditor(${si}, -1)">
+              ${Icons.plus(14)} Adicionar Aula
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Track temp sections while editing
+    function getTempSections() {
+      if (editingCourse && editingCourse.sections) return editingCourse.sections;
+      if (!editingCourse) {
+        if (!window._tempSections) window._tempSections = [];
+        return window._tempSections;
+      }
+      return [];
+    }
+
+    function handleAddSection() {
+      let sections = getTempSections();
+      const newId = sections.length > 0 ? Math.max(...sections.map(s => s.id || 0)) + 1 : 1;
+      const title = prompt('Nome do capítulo:', `Capítulo ${sections.length + 1}`);
+      if (!title) return;
+      sections.push({ id: newId, title, lessons: [] });
+      if (editingCourse) editingCourse.sections = sections;
+      else window._tempSections = sections;
+      document.getElementById('course-builder').innerHTML = renderCourseSections({ sections });
+    }
+
+    function editSectionTitle(si) {
+      let sections = getTempSections();
+      const newTitle = prompt('Novo nome:', sections[si].title);
+      if (!newTitle) return;
+      sections[si].title = newTitle;
+      document.getElementById('course-builder').innerHTML = renderCourseSections({ sections });
+    }
+
+    function handleDeleteSection(si) {
+      let sections = getTempSections();
+      if (!confirm(`Excluir "${sections[si].title}" e todas as suas aulas?`)) return;
+      sections.splice(si, 1);
+      document.getElementById('course-builder').innerHTML = renderCourseSections({ sections });
+    }
+
+    function handleDeleteLesson(si, li) {
+      let sections = getTempSections();
+      if (!confirm(`Excluir a aula "${sections[si].lessons[li].title}"?`)) return;
+      sections[si].lessons.splice(li, 1);
+      document.getElementById('course-builder').innerHTML = renderCourseSections({ sections });
+    }
+
+    // ── Lesson Editor ──
+    function openLessonEditor(sectionIdx, lessonIdx) {
+      const sections = getTempSections();
+      const isNew = lessonIdx === -1;
+      const lesson = isNew ? { title: '', type: 'video', videoUrl: '', content: '', transcription: '', notes: '', duration: '', fileName: '', fileSize: '' } : { ...sections[sectionIdx].lessons[lessonIdx] };
+      editingLessonCtx = { sectionIdx, lessonIdx };
+
+      document.getElementById('lesson-container').innerHTML = `
+        <div class="admin-modal-header">
+          <h2>${isNew ? Icons.plus(20) : Icons.edit(20)} ${isNew ? 'Nova Aula' : 'Editar Aula'}</h2>
+          <button class="admin-action-btn" onclick="closeLessonEditor()">${Icons.close(18)}</button>
+        </div>
+        <div class="admin-modal-body">
+          <div class="admin-form-grid">
+            <div class="admin-form-group full">
+              <label>Título da Aula <span class="required">*</span></label>
+              <input type="text" id="l-title" value="${lesson.title}" placeholder="Ex: Introdução à compostagem">
+            </div>
+            <div class="admin-form-group full">
+              <label>Tipo de Conteúdo</label>
+              <div style="display:flex;gap:var(--space-3);">
+                <label style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border:1px solid var(--border-light);border-radius:var(--radius-md);cursor:pointer;flex:1;font-size:var(--font-size-sm);">
+                  <input type="radio" name="l-type" value="video" ${lesson.type === 'video' ? 'checked' : ''} onchange="toggleLessonType()"> 🎥 Vídeo
+                </label>
+                <label style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border:1px solid var(--border-light);border-radius:var(--radius-md);cursor:pointer;flex:1;font-size:var(--font-size-sm);">
+                  <input type="radio" name="l-type" value="text" ${lesson.type === 'text' ? 'checked' : ''} onchange="toggleLessonType()"> 📝 Texto
+                </label>
+                <label style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border:1px solid var(--border-light);border-radius:var(--radius-md);cursor:pointer;flex:1;font-size:var(--font-size-sm);">
+                  <input type="radio" name="l-type" value="pdf" ${lesson.type === 'pdf' ? 'checked' : ''} onchange="toggleLessonType()"> 📄 PDF
+                </label>
+              </div>
+            </div>
+
+            <!-- Video fields -->
+            <div id="lesson-video-fields" class="admin-form-group full" style="display:${lesson.type === 'video' ? 'flex' : 'none'}; flex-direction:column; gap:var(--space-4);">
+              <div class="admin-form-group">
+                <label>URL do Vídeo</label>
+                <input type="url" id="l-videoUrl" value="${lesson.videoUrl || ''}" placeholder="https://youtube.com/watch?v=... ou URL do vídeo">
+                <span class="help-text">YouTube, Vimeo ou link direto do vídeo</span>
+              </div>
+              <div class="admin-form-group">
+                <label>Duração</label>
+                <input type="text" id="l-duration" value="${lesson.duration || ''}" placeholder="Ex: 15 min">
+              </div>
+              <div class="file-upload-area" onclick="showToast('Upload de vídeo em breve!','upload')" style="padding:var(--space-6);">
+                ${Icons.upload(28)}
+                <p>Ou faça upload do vídeo</p>
+                <span class="file-types">MP4, MOV, WEBM até 500MB</span>
+              </div>
+            </div>
+
+            <!-- Text fields -->
+            <div id="lesson-text-fields" class="admin-form-group full" style="display:${lesson.type === 'text' ? 'flex' : 'none'}; flex-direction:column; gap:var(--space-4);">
+              <div class="admin-form-group">
+                <label>Conteúdo da Aula</label>
+                <textarea id="l-content" rows="8" placeholder="Escreva o conteúdo da aula aqui...">${lesson.content || ''}</textarea>
+              </div>
+            </div>
+
+            <!-- PDF fields -->
+            <div id="lesson-pdf-fields" class="admin-form-group full" style="display:${lesson.type === 'pdf' ? 'flex' : 'none'}; flex-direction:column; gap:var(--space-4);">
+              <div class="admin-form-group">
+                <label>Nome do Arquivo</label>
+                <input type="text" id="l-fileName" value="${lesson.fileName || ''}" placeholder="Ex: material-apoio.pdf">
+              </div>
+              <div class="file-upload-area" onclick="showToast('Upload de PDF em breve!','upload')">
+                ${Icons.upload(28)}
+                <p>Faça upload do arquivo PDF</p>
+                <span class="file-types">PDF até 50MB</span>
+              </div>
+            </div>
+
+            <!-- Transcription (for video & text) -->
+            <div class="admin-form-group full">
+              <label>${Icons.edit(14)} Transcrição</label>
+              <textarea id="l-transcription" rows="4" placeholder="Cole ou digite a transcrição da aula...">${lesson.transcription || ''}</textarea>
+              <span class="help-text">Transcrição completa do conteúdo falado ou escrito</span>
+            </div>
+
+            <!-- Notes -->
+            <div class="admin-form-group full">
+              <label>${Icons.copy(14)} Notas da Aula</label>
+              <textarea id="l-notes" rows="4" placeholder="Anotações do instrutor, pontos-chave, resumos...">${lesson.notes || ''}</textarea>
+              <span class="help-text">Notas de anotação para os alunos</span>
+            </div>
+          </div>
+        </div>
+        <div class="admin-modal-footer">
+          <button class="btn btn-ghost" onclick="closeLessonEditor()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveLesson()">
+            ${Icons.check(16)} ${isNew ? 'Adicionar Aula' : 'Salvar Aula'}
+          </button>
+        </div>
+      `;
+
+      const overlay = document.getElementById('lesson-overlay');
+      overlay.classList.add('open');
+    }
+
+    function closeLessonEditor() {
+      document.getElementById('lesson-overlay').classList.remove('open');
+      editingLessonCtx = null;
+    }
+
+    function toggleLessonType() {
+      const type = document.querySelector('input[name="l-type"]:checked').value;
+      document.getElementById('lesson-video-fields').style.display = type === 'video' ? 'flex' : 'none';
+      document.getElementById('lesson-text-fields').style.display = type === 'text' ? 'flex' : 'none';
+      document.getElementById('lesson-pdf-fields').style.display = type === 'pdf' ? 'flex' : 'none';
+    }
+
+    function saveLesson() {
+      const title = document.getElementById('l-title').value.trim();
+      if (!title) { showToast('Informe o título da aula!', 'close'); return; }
+
+      const type = document.querySelector('input[name="l-type"]:checked').value;
+      const lesson = {
+        title,
+        type,
+        videoUrl: document.getElementById('l-videoUrl')?.value || '',
+        duration: document.getElementById('l-duration')?.value || '',
+        content: document.getElementById('l-content')?.value || '',
+        fileName: document.getElementById('l-fileName')?.value || '',
+        fileSize: '',
+        transcription: document.getElementById('l-transcription')?.value || '',
+        notes: document.getElementById('l-notes')?.value || '',
+      };
+
+      const { sectionIdx, lessonIdx } = editingLessonCtx;
+      let sections = getTempSections();
+
+      if (lessonIdx === -1) {
+        // New lesson
+        const allIds = sections.flatMap(s => s.lessons.map(l => l.id || 0));
+        lesson.id = allIds.length > 0 ? Math.max(...allIds) + 1 : 1;
+        sections[sectionIdx].lessons.push(lesson);
+        showToast('Aula adicionada!', 'check');
+      } else {
+        // Update existing
+        lesson.id = sections[sectionIdx].lessons[lessonIdx].id;
+        sections[sectionIdx].lessons[lessonIdx] = lesson;
+        showToast('Aula atualizada!', 'check');
+      }
+
+      document.getElementById('course-builder').innerHTML = renderCourseSections({ sections });
+      closeLessonEditor();
+    }
+
+    function saveCourse() {
+      const title = document.getElementById('c-title').value.trim();
+      const instructor = document.getElementById('c-instructor').value.trim();
+      if (!title) { showToast('Informe o título do curso!', 'close'); return; }
+      if (!instructor) { showToast('Informe o instrutor!', 'close'); return; }
+
+      const sections = getTempSections();
+
+      const data = {
+        title,
+        instructor,
+        avatar: document.getElementById('c-avatar').value.trim() || title.charAt(0),
+        price: parseFloat(document.getElementById('c-price').value) || 0,
+        duration: document.getElementById('c-duration').value.trim(),
+        level: document.getElementById('c-level').value,
+        category: document.getElementById('c-category').value,
+        modules: parseInt(document.getElementById('c-modules').value) || sections.reduce((s, sec) => s + sec.lessons.length, 0),
+        status: document.getElementById('c-status').value,
+        badge: document.getElementById('c-badge').value.trim(),
+        description: document.getElementById('c-description').value.trim(),
+        icon: document.getElementById('c-icon').value,
+        gradient: document.getElementById('c-gradient').value,
+        sections: sections,
+        students: editingCourse ? (editingCourse.students || 0) : 0,
+        rating: editingCourse ? (editingCourse.rating || 4.5) : 4.5,
+      };
+
+      if (editingCourse) {
+        AdminStore.updateCourse(editingCourse.id, data);
+        showToast('Curso atualizado com sucesso!', 'check');
+      } else {
+        AdminStore.addCourse(data);
+        showToast('Curso criado com sucesso!', 'check');
+      }
+
+      window._tempSections = null;
+      closeModal();
+      renderMain();
+    }
+
+    function confirmDeleteCourse(id) {
+      const c = AdminStore.getCourses().find(x => x.id === id);
+      if (!c) return;
+      if (confirm(`Excluir "${c.title}"? Esta ação não pode ser desfeita.`)) {
+        AdminStore.deleteCourse(id);
+        showToast('Curso excluído!', 'trash');
+        renderMain();
+      }
+    }
+
+    // ══════════════════════════════════════════════
+    //  ORDERS PAGE (placeholder)
+    // ══════════════════════════════════════════════
+    function renderOrdersPage(el) {
+      const orders = [
+        { id: 1042, customer: 'André Machado', date: '15/01/2025', items: 3, total: 187.40, status: 'Enviado', statusColor: 'badge-info' },
+        { id: 1041, customer: 'Maria silva', date: '08/01/2025', items: 5, total: 256.80, status: 'Entregue', statusColor: 'badge-green' },
+        { id: 1040, customer: 'João Souza', date: '05/01/2025', items: 2, total: 89.90, status: 'Entregue', statusColor: 'badge-green' },
+        { id: 1039, customer: 'Ana Pereira', date: '02/01/2025', items: 7, total: 345.60, status: 'Entregue', statusColor: 'badge-green' },
+        { id: 1038, customer: 'Carlos Ribeiro', date: '28/12/2024', items: 1, total: 42.50, status: 'Entregue', statusColor: 'badge-green' },
+      ];
+      el.innerHTML = `
+        <div class="admin-topbar">
+          <h1>Pedidos</h1>
+        </div>
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr><th>#</th><th>Cliente</th><th>Data</th><th>Itens</th><th>Total</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              ${orders.map(o => `
+                <tr>
+                  <td><strong>#${o.id}</strong></td>
+                  <td>${o.customer}</td>
+                  <td>${o.date}</td>
+                  <td>${o.items}</td>
+                  <td><strong>${formatBRL(o.total)}</strong></td>
+                  <td><span class="badge ${o.statusColor}">${o.status}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // ══════════════════════════════════════════════
+    //  MEMBERS PAGE (placeholder)
+    // ══════════════════════════════════════════════
+    function renderMembersPage(el) {
+      const members = window.MEMBERS || [];
+      el.innerHTML = `
+        <div class="admin-topbar">
+          <h1>Integrantes</h1>
+        </div>
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr><th>Membro</th><th>Função</th><th>Localização</th><th>Categoria</th><th>Anos</th></tr>
+            </thead>
+            <tbody>
+              ${members.map(m => `
+                <tr>
+                  <td>
+                    <div class="td-product">
+                      <div style="width:36px;height:36px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:var(--font-size-xs);color:var(--green-dark);">${m.avatar}</div>
+                      <strong>${m.name}</strong>
+                    </div>
+                  </td>
+                  <td>${m.role}</td>
+                  <td>${m.location}</td>
+                  <td><span class="badge badge-green">${m.category}</span></td>
+                  <td>${m.years} anos</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // ══════════════════════════════════════════════
+    //  MODAL HELPERS
+    // ══════════════════════════════════════════════
+    function openModal() {
+      document.getElementById('modal-overlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('open');
+      document.body.style.overflow = '';
+      editingProduct = null;
+      editingCourse = null;
+      window._tempSections = null;
+    }
+
+    // Close on overlay click
+    document.getElementById('modal-overlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeModal();
+    });
+    document.getElementById('lesson-overlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeLessonEditor();
+    });
+
+    // ESC to close
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (document.getElementById('lesson-overlay').classList.contains('open')) {
+          closeLessonEditor();
+        } else if (document.getElementById('modal-overlay').classList.contains('open')) {
+          closeModal();
+        }
+      }
+    });
+
+    // ── Mobile sidebar toggle ──
+    function toggleAdminSidebar() {
+      document.getElementById('admin-sidebar').classList.toggle('open');
+    }
+
+    // ── Init ──
+    renderSidebar();
+    renderMain();
+  </script>
+</body>
+</html>

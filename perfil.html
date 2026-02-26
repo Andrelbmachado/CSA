@@ -25,6 +25,7 @@
   <script src="js/icons.js"></script>
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/admin-store.js"></script>
   <script>
     document.getElementById('app-header').innerHTML = renderHeader('');
     document.getElementById('app-footer').innerHTML = renderFooter();
@@ -42,6 +43,8 @@
     }
 
     function renderProfilePage() {
+      const auth = AdminStore.getAuth();
+      const isAdmin = auth && auth.role === 'admin';
       const orders = [
         { id: 1042, date: '15/01/2025', status: 'Enviado', statusColor: 'badge-info', items: 3, total: 187.40 },
         { id: 1041, date: '08/01/2025', status: 'Entregue', statusColor: 'badge-green', items: 5, total: 256.80 },
@@ -99,8 +102,10 @@
           </button>
           <button class="profile-sidebar-item" onclick="showSection('config')" data-tooltip="Configurações da conta">
             ${Icons.settings(18)} Configurações
-          </button>
-          <button class="profile-sidebar-item" onclick="showToast('Desconectado com sucesso!','check');setTimeout(()=>window.location.href='login.html',1000)" style="color:var(--error);" data-tooltip="Sair da conta">
+          </button>          ${isAdmin ? `
+          <a href="admin.html" class="profile-sidebar-item" style="color:var(--green-dark);background:var(--green-light);font-weight:600;" data-tooltip="Painel de administração">
+            ${Icons.lock(18)} Painel Admin
+          </a>` : ''}          <button class="profile-sidebar-item" onclick="showToast('Desconectado com sucesso!','check');AdminStore.logout();setTimeout(()=>window.location.href='login.html',1000)" style="color:var(--error);" data-tooltip="Sair da conta">
             ${Icons.lock(18)} Sair
           </button>
         </div>

@@ -231,8 +231,7 @@ function renderHeader(activePage) {
   <header class="app-header">
     <div class="header-inner">
       <a href="index.html" class="header-logo" data-tooltip="Página Inicial">
-        <div class="logo-circle">${Icons.leaf(24)}</div>
-        <span class="logo-text">CSA</span>
+        <img src="assets/logo.png" alt="CSA" class="logo-img">
       </a>
 
       <nav class="header-nav" id="header-nav">
@@ -293,8 +292,7 @@ function renderFooter() {
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="footer-brand-logo">
-            <div class="logo-circle">${Icons.leaf(20)}</div>
-            <span class="logo-text" style="font-size:1.25rem;font-weight:700;color:#fff;">CSA</span>
+            <img src="assets/logo.png" alt="CSA" class="logo-img" style="height:36px;filter:brightness(0) invert(1);">
           </div>
           <p>Comunidade que Sustenta a Agricultura. Conectando produtores rurais e consumidores conscientes para uma alimentação saudável e sustentável.</p>
           <div class="footer-social">
