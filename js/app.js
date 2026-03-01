@@ -230,31 +230,31 @@ function renderHeader(activePage) {
   return `
   <header class="app-header">
     <div class="header-inner">
-      <a href="index.html" class="header-logo" data-tooltip="Página Inicial">
+      <a href="index.html" class="header-logo">
         <img src="assets/logo.png" alt="CSA" class="logo-img">
       </a>
 
       <nav class="header-nav" id="header-nav">
-        <a href="index.html" class="nav-link ${activePage === 'home' ? 'active' : ''}" data-tooltip="Página Inicial" data-tooltip-pos="bottom">
+        <a href="index.html" class="nav-link ${activePage === 'home' ? 'active' : ''}">
           ${Icons.home(18)} Início
         </a>
-        <a href="marketplace.html" class="nav-link ${activePage === 'marketplace' ? 'active' : ''}" data-tooltip="Loja de produtos" data-tooltip-pos="bottom">
+        <a href="marketplace.html" class="nav-link ${activePage === 'marketplace' ? 'active' : ''}">
           ${Icons.marketplace(18)} Marketplace
         </a>
-        <a href="cursos.html" class="nav-link ${activePage === 'cursos' ? 'active' : ''}" data-tooltip="Cursos de capacitação" data-tooltip-pos="bottom">
+        <a href="cursos.html" class="nav-link ${activePage === 'cursos' ? 'active' : ''}">
           ${Icons.course(18)} Cursos
         </a>
-        <a href="receitas.html" class="nav-link ${activePage === 'receitas' ? 'active' : ''}" data-tooltip="Receitas da comunidade" data-tooltip-pos="bottom">
+        <a href="receitas.html" class="nav-link ${activePage === 'receitas' ? 'active' : ''}">
           ${Icons.recipe(18)} Receitas
         </a>
-        <a href="integrantes.html" class="nav-link ${activePage === 'integrantes' ? 'active' : ''}" data-tooltip="Produtores e membros" data-tooltip-pos="bottom">
+        <a href="integrantes.html" class="nav-link ${activePage === 'integrantes' ? 'active' : ''}">
           ${Icons.members(18)} Integrantes
         </a>
       </nav>
 
       <div class="header-actions">
         <div style="position:relative;">
-          <button class="header-action-btn" id="notif-btn" data-tooltip="Notificações">
+          <button class="header-action-btn" id="notif-btn">
             ${Icons.bell(22)}
             <span class="cart-badge notif-count" style="background:var(--green-primary);${unreadCount === 0 ? 'display:none;' : ''}">${unreadCount}</span>
           </button>
@@ -269,11 +269,11 @@ function renderHeader(activePage) {
             </div>
           </div>
         </div>
-        <a href="carrinho.html" class="header-action-btn" data-tooltip="Carrinho de compras">
+        <a href="carrinho.html" class="header-action-btn">
           ${Icons.cart(22)}
           <span class="cart-badge cart-count-badge" style="${cartCount === 0 ? 'display:none;' : ''}">${cartCount}</span>
         </a>
-        <a href="perfil.html" class="header-action-btn" data-tooltip="Meu perfil">
+        <a href="perfil.html" class="header-action-btn">
           ${Icons.profile(22)}
         </a>
         <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu" aria-expanded="false">
@@ -296,9 +296,9 @@ function renderFooter() {
           </div>
           <p>Comunidade que Sustenta a Agricultura. Conectando produtores rurais e consumidores conscientes para uma alimentação saudável e sustentável.</p>
           <div class="footer-social">
-            <a href="#" data-tooltip="Facebook">${Icons.facebook(18)}</a>
-            <a href="#" data-tooltip="Instagram">${Icons.instagram(18)}</a>
-            <a href="#" data-tooltip="WhatsApp">${Icons.whatsapp(18)}</a>
+            <a href="#">${Icons.facebook(18)}</a>
+            <a href="#">${Icons.instagram(18)}</a>
+            <a href="#">${Icons.whatsapp(18)}</a>
           </div>
         </div>
         <div class="footer-col">
@@ -343,7 +343,7 @@ function renderProductCard(p, index) {
     <a href="produto.html?id=${p.id}" class="product-card-image card-img-zoom img-placeholder ${p.gradient || 'green'}">
       <div class="card-img-inner">${Icons[p.icon](64)}</div>
       <span class="badge badge-green product-badge">${p.badge}</span>
-      <button class="favorite-btn" data-tooltip="Adicionar aos favoritos" onclick="event.preventDefault();event.stopPropagation();showToast('Adicionado aos favoritos!','heart');">
+      <button class="favorite-btn" onclick="event.preventDefault();event.stopPropagation();showToast('Adicionado aos favoritos!','heart');">
         ${Icons.heart(16)}
       </button>
     </a>
@@ -359,7 +359,7 @@ function renderProductCard(p, index) {
       </div>
       <div class="product-footer">
         <div class="product-price">${formatBRL(p.price)} <small>${p.unit}</small></div>
-        <button class="add-cart-btn btn-pulse" data-tooltip="Adicionar ao carrinho" onclick="addToCart({id:${p.id},name:'${p.name.replace(/'/g,"\\'")}',price:${p.price},icon:'${p.icon}',gradient:'${p.gradient||'green'}'})">
+        <button class="add-cart-btn btn-pulse" onclick="addToCart({id:${p.id},name:'${p.name.replace(/'/g,"\\'"))',price:${p.price},icon:'${p.icon}',gradient:'${p.gradient||'green'}'})">
           ${Icons.plus(18)}
         </button>
       </div>

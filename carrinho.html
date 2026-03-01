@@ -71,11 +71,22 @@
 
       layout.innerHTML = `
         <div class="cart-items">
-          <h3 style="font-size:var(--font-size-lg);margin-bottom:var(--space-4);">Itens (${cart.reduce((s,i)=>s+i.qty,0)})</h3>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+            <h3 style="font-size:var(--font-size-lg);">Itens (${cart.reduce((s,i)=>s+i.qty,0)})</h3>
+            <div class="cart-select-all">
+              <label>
+                <input type="checkbox" id="select-all-cart" onchange="toggleSelectAll(this.checked)" checked>
+                Selecionar todos
+              </label>
+            </div>
+          </div>
           ${cart.map(item => {
             const product = window.PRODUCTS.find(p => p.id === item.id);
             return `
-            <div class="cart-item fade-in-up">
+            <div class="cart-item fade-in-up selected" data-item-id="${item.id}">
+              <div class="cart-item-check">
+                <input type="checkbox" checked onchange="toggleCartItem(${item.id}, this.checked)">
+              </div>
               <div class="cart-item-image img-placeholder ${item.gradient || 'green'}">
                 ${Icons[item.icon || 'apple'](40)}
               </div>
@@ -84,12 +95,12 @@
                 <p class="cart-item-price">${formatBRL(item.price)} ${product ? product.unit : '/unid'}</p>
               </div>
               <div class="cart-item-qty">
-                <button onclick="modifyQty(${item.id}, -1)" data-tooltip="Diminuir">−</button>
+                <button onclick="modifyQty(${item.id}, -1)">−</button>
                 <span>${item.qty}</span>
-                <button onclick="modifyQty(${item.id}, 1)" data-tooltip="Aumentar">+</button>
+                <button onclick="modifyQty(${item.id}, 1)">+</button>
               </div>
               <div class="cart-item-total">${formatBRL(item.price * item.qty)}</div>
-              <button class="cart-item-remove" onclick="removeItem(${item.id})" data-tooltip="Remover item">
+              <button class="cart-item-remove" onclick="removeItem(${item.id})">
                 ${Icons.trash(18)}
               </button>
             </div>`;
@@ -113,9 +124,9 @@
           </div>
           <div class="cart-coupon">
             <input type="text" placeholder="Cupom de desconto" id="coupon-input">
-            <button class="btn btn-outline btn-sm" onclick="applyCoupon()" data-tooltip="Aplicar cupom">Aplicar</button>
+            <button class="btn btn-outline btn-sm" onclick="applyCoupon()">Aplicar</button>
           </div>
-          <button class="btn btn-primary btn-lg btn-pulse" onclick="checkout()" data-tooltip="Finalizar compra">
+          <button class="btn btn-primary btn-lg btn-pulse" onclick="checkout()">
             ${Icons.check(20)} Finalizar Compra
           </button>
           <a href="marketplace.html" class="btn btn-ghost" style="width:100%;margin-top:var(--space-2);">
@@ -144,6 +155,26 @@
       } else if (code) {
         showToast('Cupom inválido. Tente CSA10.', 'close');
       }
+    }
+
+    function toggleCartItem(id, checked) {
+      const el = document.querySelector(`.cart-item[data-item-id="${id}"]`);
+      if (el) {
+        el.classList.toggle('selected', checked);
+      }
+      // Update select-all checkbox state
+      const allBoxes = document.querySelectorAll('.cart-item-check input[type="checkbox"]');
+      const allChecked = [...allBoxes].every(cb => cb.checked);
+      const selectAll = document.getElementById('select-all-cart');
+      if (selectAll) selectAll.checked = allChecked;
+    }
+
+    function toggleSelectAll(checked) {
+      document.querySelectorAll('.cart-item-check input[type="checkbox"]').forEach(cb => {
+        cb.checked = checked;
+        const item = cb.closest('.cart-item');
+        if (item) item.classList.toggle('selected', checked);
+      });
     }
 
     function checkout() {
