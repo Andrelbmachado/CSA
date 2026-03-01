@@ -41,10 +41,11 @@
     document.getElementById('app-header').innerHTML = renderHeader('');
     initNotifications();
 
-    // Check admin auth
-    const auth = AdminStore.getAuth();
+    // Check admin auth — auto-login for demo
+    let auth = AdminStore.getAuth();
     if (!auth || auth.role !== 'admin') {
-      window.location.href = 'login.html';
+      AdminStore.setAuth({ name: 'Admin CSA', email: 'admin@csa.org.br', role: 'admin' });
+      auth = AdminStore.getAuth();
     }
 
     // ── State ──

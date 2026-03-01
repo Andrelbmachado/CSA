@@ -359,7 +359,7 @@ function renderProductCard(p, index) {
       </div>
       <div class="product-footer">
         <div class="product-price">${formatBRL(p.price)} <small>${p.unit}</small></div>
-        <button class="add-cart-btn btn-pulse" onclick="addToCart({id:${p.id},name:'${p.name.replace(/'/g,"\\'"))',price:${p.price},icon:'${p.icon}',gradient:'${p.gradient||'green'}'})">
+        <button class="add-cart-btn btn-pulse" onclick="addToCart({id:${p.id},name:'${p.name.replace(/'/g,"\\'")}',price:${p.price},icon:'${p.icon}',gradient:'${p.gradient||'green'}'})">
           ${Icons.plus(18)}
         </button>
       </div>
