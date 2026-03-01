@@ -212,6 +212,121 @@
     getCourses, saveCourses, addCourse, updateCourse, deleteCourse,
     addSection, updateSection, deleteSection,
     addLesson, updateLesson, deleteLesson,
+    getRecipes, saveRecipes, addRecipe, updateRecipe, deleteRecipe,
+    getUsers, saveUsers, addUser, updateUser, deleteUser,
   };
+
+  /* ── Recipes CRUD ── */
+  const RECIPES_KEY = 'csa_admin_recipes';
+
+  function getRecipes() {
+    const stored = localStorage.getItem(RECIPES_KEY);
+    if (stored) return JSON.parse(stored);
+    const seeded = (window.RECIPES || []).map(r => ({
+      ...r,
+      status: 'active',
+      createdAt: '2025-01-01',
+    }));
+    localStorage.setItem(RECIPES_KEY, JSON.stringify(seeded));
+    return seeded;
+  }
+
+  function saveRecipes(recipes) {
+    localStorage.setItem(RECIPES_KEY, JSON.stringify(recipes));
+    window.RECIPES = recipes.filter(r => r.status === 'active');
+  }
+
+  function addRecipe(recipe) {
+    const recipes = getRecipes();
+    recipe.id = recipes.length > 0 ? Math.max(...recipes.map(r => r.id)) + 1 : 1;
+    recipe.createdAt = new Date().toISOString().split('T')[0];
+    recipes.push(recipe);
+    saveRecipes(recipes);
+    return recipe;
+  }
+
+  function updateRecipe(id, data) {
+    const recipes = getRecipes();
+    const idx = recipes.findIndex(r => r.id === id);
+    if (idx === -1) return null;
+    recipes[idx] = { ...recipes[idx], ...data };
+    saveRecipes(recipes);
+    return recipes[idx];
+  }
+
+  function deleteRecipe(id) {
+    let recipes = getRecipes();
+    recipes = recipes.filter(r => r.id !== id);
+    saveRecipes(recipes);
+  }
+
+  /* ── Users CRUD ── */
+  const USERS_KEY = 'csa_admin_users';
+
+  function getUsers() {
+    const stored = localStorage.getItem(USERS_KEY);
+    if (stored) return JSON.parse(stored);
+    const seeded = (window.MEMBERS || []).map(m => ({
+      id: m.id,
+      name: m.name,
+      email: m.name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z.]/g, '') + '@csa.com',
+      role: m.role,
+      location: m.location,
+      avatar: m.avatar,
+      category: m.category,
+      years: m.years,
+      bio: m.bio,
+      specialties: m.specialties || [],
+      status: 'active',
+      userRole: 'user',
+      createdAt: '2025-01-01',
+    }));
+    // Add a sample admin user
+    seeded.unshift({
+      id: 100,
+      name: 'Administrador CSA',
+      email: 'admin@csa.com',
+      role: 'Administrador',
+      location: 'São Paulo-SP',
+      avatar: 'AD',
+      category: 'admin',
+      years: 0,
+      bio: 'Administrador geral da plataforma CSA.',
+      specialties: ['Gestão', 'Administração'],
+      status: 'active',
+      userRole: 'admin',
+      createdAt: '2025-01-01',
+    });
+    localStorage.setItem(USERS_KEY, JSON.stringify(seeded));
+    return seeded;
+  }
+
+  function saveUsers(users) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }
+
+  function addUser(user) {
+    const users = getUsers();
+    user.id = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
+    user.createdAt = new Date().toISOString().split('T')[0];
+    users.push(user);
+    saveUsers(users);
+    return user;
+  }
+
+  function updateUser(id, data) {
+    const users = getUsers();
+    const idx = users.findIndex(u => u.id === id);
+    if (idx === -1) return null;
+    users[idx] = { ...users[idx], ...data };
+    saveUsers(users);
+    return users[idx];
+  }
+
+  function deleteUser(id) {
+    let users = getUsers();
+    users = users.filter(u => u.id !== id);
+    saveUsers(users);
+  }
 
 })();

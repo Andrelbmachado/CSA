@@ -52,12 +52,18 @@
     let editingProduct = null;
     let editingCourse = null;
     let editingLessonCtx = null; // {courseId, sectionId, lessonId}
+    let editingRecipe = null;
+    let editingUser = null;
 
     const ICON_OPTIONS = ['apple','plant','leaf','farm','seed','sun','waterDrop','wheat','recipe','tractor'];
     const GRADIENT_OPTIONS = ['green','yellow','cream','brown','orange','purple','red','blue'];
     const CATEGORY_OPTIONS = ['cestas','hortalicas','laticinios','conservas','graos','bebidas'];
     const COURSE_CATEGORY_OPTIONS = ['horta','pecuaria','solo','agroecologia','processamento','tecnologia'];
     const LEVEL_OPTIONS = ['Iniciante','Intermediário','Avançado'];
+    const RECIPE_CATEGORY_OPTIONS = ['saladas','sopas','paes','conservas','pratos','bebidas','lanches','sobremesas'];
+    const DIFFICULTY_OPTIONS = ['Fácil','Intermediário','Avançado'];
+    const USER_ROLE_OPTIONS = ['user','admin'];
+    const USER_CATEGORY_OPTIONS = ['produtor','educador','parceiro','consumidor','admin'];
 
     // ── Render Sidebar ──
     function renderSidebar() {
@@ -76,9 +82,15 @@
           <button class="admin-nav-item ${currentSection === 'courses' ? 'active' : ''}" onclick="navigateTo('courses')">
             ${Icons.course(18)} Cursos
           </button>
+          <button class="admin-nav-item ${currentSection === 'recipes' ? 'active' : ''}" onclick="navigateTo('recipes')">
+            ${Icons.recipe(18)} Receitas
+          </button>
           <div class="admin-nav-divider"></div>
           <button class="admin-nav-item ${currentSection === 'orders' ? 'active' : ''}" onclick="navigateTo('orders')">
             ${Icons.cart(18)} Pedidos
+          </button>
+          <button class="admin-nav-item ${currentSection === 'users' ? 'active' : ''}" onclick="navigateTo('users')">
+            ${Icons.users(18)} Usuários
           </button>
           <button class="admin-nav-item ${currentSection === 'members' ? 'active' : ''}" onclick="navigateTo('members')">
             ${Icons.members(18)} Integrantes
@@ -108,7 +120,9 @@
         case 'dashboard': renderDashboard(main); break;
         case 'products':  renderProductsPage(main); break;
         case 'courses':   renderCoursesPage(main); break;
+        case 'recipes':   renderRecipesPage(main); break;
         case 'orders':    renderOrdersPage(main); break;
+        case 'users':     renderUsersPage(main); break;
         case 'members':   renderMembersPage(main); break;
         default:          renderDashboard(main);
       }
@@ -120,10 +134,14 @@
     function renderDashboard(el) {
       const products = AdminStore.getProducts();
       const courses = AdminStore.getCourses();
+      const recipes = AdminStore.getRecipes();
+      const users = AdminStore.getUsers();
       const activeProducts = products.filter(p => p.status === 'active').length;
       const activeCourses = courses.filter(c => c.status === 'active').length;
+      const activeRecipes = recipes.filter(r => r.status === 'active').length;
       const totalStock = products.reduce((s, p) => s + (p.stock || 0), 0);
       const totalStudents = courses.reduce((s, c) => s + (c.students || 0), 0);
+      const activeUsers = users.filter(u => u.status === 'active').length;
 
       el.innerHTML = `
         <div class="admin-topbar">
@@ -138,40 +156,53 @@
             <button class="btn btn-dark" onclick="openCourseModal()">
               ${Icons.plus(16)} Novo Curso
             </button>
+            <button class="btn btn-outline" onclick="openRecipeModal()">
+              ${Icons.plus(16)} Nova Receita
+            </button>
           </div>
         </div>
 
-        <div class="admin-stats">
+        <div class="admin-stats" style="grid-template-columns:repeat(6,1fr);">
           <div class="admin-stat-card fade-in-up stagger-1">
             <div class="admin-stat-icon green">${Icons.marketplace(24)}</div>
             <div class="admin-stat-info">
               <strong>${activeProducts}</strong>
-              <span>Produtos Ativos</span>
-              <span class="stat-change">+${products.filter(p => p.status === 'draft').length} rascunhos</span>
+              <span>Produtos</span>
             </div>
           </div>
           <div class="admin-stat-card fade-in-up stagger-2">
             <div class="admin-stat-icon blue">${Icons.course(24)}</div>
             <div class="admin-stat-info">
               <strong>${activeCourses}</strong>
-              <span>Cursos Ativos</span>
-              <span class="stat-change">${courses.reduce((s, c) => s + (c.sections||[]).length, 0)} capítulos</span>
+              <span>Cursos</span>
             </div>
           </div>
           <div class="admin-stat-card fade-in-up stagger-3">
-            <div class="admin-stat-icon orange">${Icons.apple(24)}</div>
+            <div class="admin-stat-icon orange">${Icons.recipe(24)}</div>
             <div class="admin-stat-info">
-              <strong>${totalStock}</strong>
-              <span>Itens em Estoque</span>
-              <span class="stat-change">${products.filter(p => (p.stock||0) < 20).length} baixo estoque</span>
+              <strong>${activeRecipes}</strong>
+              <span>Receitas</span>
             </div>
           </div>
           <div class="admin-stat-card fade-in-up stagger-4">
             <div class="admin-stat-icon purple">${Icons.users(24)}</div>
             <div class="admin-stat-info">
+              <strong>${activeUsers}</strong>
+              <span>Usuários</span>
+            </div>
+          </div>
+          <div class="admin-stat-card fade-in-up stagger-5">
+            <div class="admin-stat-icon green">${Icons.apple(24)}</div>
+            <div class="admin-stat-info">
+              <strong>${totalStock}</strong>
+              <span>Estoque</span>
+            </div>
+          </div>
+          <div class="admin-stat-card fade-in-up stagger-6">
+            <div class="admin-stat-icon blue">${Icons.members(24)}</div>
+            <div class="admin-stat-info">
               <strong>${totalStudents.toLocaleString('pt-BR')}</strong>
-              <span>Alunos Matriculados</span>
-              <span class="stat-change">Em todos os cursos</span>
+              <span>Alunos</span>
             </div>
           </div>
         </div>
@@ -184,32 +215,18 @@
           </div>
           <table class="admin-table">
             <thead>
-              <tr>
-                <th>Produto</th>
-                <th>Preço</th>
-                <th>Estoque</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
+              <tr><th>Produto</th><th>Preço</th><th>Estoque</th><th>Status</th><th>Ações</th></tr>
             </thead>
             <tbody>
-              ${products.slice(0, 5).map(p => `
+              ${products.slice(0, 4).map(p => `
                 <tr>
-                  <td>
-                    <div class="td-product">
-                      <div class="td-icon ${p.gradient || 'green'}">${Icons[p.icon] ? Icons[p.icon](20) : Icons.apple(20)}</div>
-                      <div>
-                        <div class="td-name">${p.name}</div>
-                        <div class="td-sub">${p.producer || 'CSA'} · ${p.category || ''}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td><strong>${formatBRL(p.price)}</strong> <small style="color:var(--text-muted);">${p.unit || ''}</small></td>
+                  <td><div class="td-product"><div class="td-icon ${p.gradient || 'green'}">${Icons[p.icon] ? Icons[p.icon](20) : Icons.apple(20)}</div><div><div class="td-name">${p.name}</div><div class="td-sub">${p.producer || 'CSA'}</div></div></div></td>
+                  <td><strong>${formatBRL(p.price)}</strong></td>
                   <td>${(p.stock||0) < 20 ? '<span style="color:var(--error);font-weight:600;">' + (p.stock||0) + '</span>' : (p.stock||0)}</td>
                   <td><span class="status-badge ${p.status || 'active'}">${p.status === 'draft' ? 'Rascunho' : p.status === 'inactive' ? 'Inativo' : 'Ativo'}</span></td>
                   <td class="td-actions">
-                    <button class="admin-action-btn" onclick="openProductModal(${p.id})" data-tooltip="Editar">${Icons.edit(14)}</button>
-                    <button class="admin-action-btn danger" onclick="confirmDeleteProduct(${p.id})" data-tooltip="Excluir">${Icons.trash(14)}</button>
+                    <button class="admin-action-btn" onclick="openProductModal(${p.id})">${Icons.edit(14)}</button>
+                    <button class="admin-action-btn danger" onclick="confirmDeleteProduct(${p.id})">${Icons.trash(14)}</button>
                   </td>
                 </tr>
               `).join('')}
@@ -217,6 +234,7 @@
           </table>
         </div>
 
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);">
         <!-- Recent Courses -->
         <div class="admin-table-wrapper fade-in-up stagger-6">
           <div class="admin-table-header">
@@ -225,39 +243,41 @@
           </div>
           <table class="admin-table">
             <thead>
-              <tr>
-                <th>Curso</th>
-                <th>Preço</th>
-                <th>Alunos</th>
-                <th>Capítulos</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
+              <tr><th>Curso</th><th>Alunos</th><th>Status</th></tr>
             </thead>
             <tbody>
-              ${courses.slice(0, 5).map(c => `
+              ${courses.slice(0, 4).map(c => `
                 <tr>
-                  <td>
-                    <div class="td-course">
-                      <div class="td-icon ${c.gradient || 'green'}">${Icons[c.icon] ? Icons[c.icon](20) : Icons.course(20)}</div>
-                      <div>
-                        <div class="td-name">${c.title}</div>
-                        <div class="td-sub">${c.instructor || ''} · ${c.level || ''}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td><strong>${c.price > 0 ? formatBRL(c.price) : 'Grátis'}</strong></td>
+                  <td><div class="td-course"><div class="td-icon ${c.gradient || 'green'}">${Icons[c.icon] ? Icons[c.icon](20) : Icons.course(20)}</div><div><div class="td-name">${c.title}</div><div class="td-sub">${c.instructor || ''}</div></div></div></td>
                   <td>${(c.students||0).toLocaleString('pt-BR')}</td>
-                  <td>${(c.sections||[]).length} caps · ${(c.sections||[]).reduce((s, sec) => s + sec.lessons.length, 0)} aulas</td>
-                  <td><span class="status-badge ${c.status || 'active'}">${c.status === 'draft' ? 'Rascunho' : c.status === 'inactive' ? 'Inativo' : 'Ativo'}</span></td>
-                  <td class="td-actions">
-                    <button class="admin-action-btn" onclick="openCourseModal(${c.id})" data-tooltip="Editar">${Icons.edit(14)}</button>
-                    <button class="admin-action-btn danger" onclick="confirmDeleteCourse(${c.id})" data-tooltip="Excluir">${Icons.trash(14)}</button>
-                  </td>
+                  <td><span class="status-badge ${c.status || 'active'}">${c.status === 'draft' ? 'Rascunho' : 'Ativo'}</span></td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
+        </div>
+
+        <!-- Recent Recipes -->
+        <div class="admin-table-wrapper fade-in-up stagger-7">
+          <div class="admin-table-header">
+            <h3>${Icons.recipe(20)} Receitas Recentes</h3>
+            <button class="btn btn-ghost btn-sm" onclick="navigateTo('recipes')">Ver todas ${Icons.chevronRight(14)}</button>
+          </div>
+          <table class="admin-table">
+            <thead>
+              <tr><th>Receita</th><th>Tempo</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              ${recipes.slice(0, 4).map(r => `
+                <tr>
+                  <td><div class="td-product"><div class="td-icon ${r.gradient || 'green'}">${Icons[r.icon] ? Icons[r.icon](20) : Icons.recipe(20)}</div><div><div class="td-name">${r.title}</div><div class="td-sub">${r.author || ''} · ${r.category || ''}</div></div></div></td>
+                  <td>${r.time || '-'}</td>
+                  <td><span class="status-badge ${r.status || 'active'}">${r.status === 'draft' ? 'Rascunho' : 'Ativo'}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
         </div>
       `;
       setTimeout(initScrollAnimations, 100);
@@ -1137,6 +1157,313 @@
     }
 
     // ══════════════════════════════════════════════
+    //  RECIPES PAGE
+    // ══════════════════════════════════════════════
+    function renderRecipesPage(el) {
+      const recipes = AdminStore.getRecipes();
+      el.innerHTML = `
+        <div class="admin-topbar">
+          <div>
+            <h1>Receitas</h1>
+            <p style="color:var(--text-muted);font-size:var(--font-size-sm);">${recipes.length} receitas cadastradas</p>
+          </div>
+          <div class="admin-topbar-actions">
+            <div class="input-group" style="min-width:220px;">
+              <span class="input-icon">${Icons.search(16)}</span>
+              <input type="text" placeholder="Buscar receita..." id="recipe-search" oninput="filterRecipes()">
+            </div>
+            <button class="btn btn-primary" onclick="openRecipeModal()">
+              ${Icons.plus(16)} Nova Receita
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-table-wrapper" id="recipes-table-wrapper">
+          ${renderRecipesTable(recipes)}
+        </div>
+      `;
+    }
+
+    function renderRecipesTable(recipes) {
+      if (recipes.length === 0) {
+        return \`<div class="admin-empty">
+          \${Icons.recipe(48)}
+          <h3>Nenhuma receita cadastrada</h3>
+          <p>Comece adicionando sua primeira receita.</p>
+          <button class="btn btn-primary" onclick="openRecipeModal()">\${Icons.plus(16)} Adicionar Receita</button>
+        </div>\`;
+      }
+      return \`
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Receita</th>
+              <th>Tempo</th>
+              <th>Dificuldade</th>
+              <th>Porções</th>
+              <th>Categoria</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            \${recipes.map(r => \`
+              <tr>
+                <td>
+                  <div class="td-product">
+                    <div class="td-icon \${r.gradient || 'green'}">\${Icons[r.icon] ? Icons[r.icon](20) : Icons.recipe(20)}</div>
+                    <div>
+                      <div class="td-name">\${r.title}</div>
+                      <div class="td-sub">\${r.author || ''}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>\${r.time || '-'}</td>
+                <td><span class="badge badge-green">\${r.difficulty || '-'}</span></td>
+                <td>\${r.serves || '-'} porções</td>
+                <td><span class="badge badge-info" style="text-transform:capitalize;">\${r.category || '-'}</span></td>
+                <td><span class="status-badge \${r.status || 'active'}">\${r.status === 'draft' ? 'Rascunho' : r.status === 'inactive' ? 'Inativo' : 'Ativo'}</span></td>
+                <td class="td-actions">
+                  <button class="admin-action-btn" onclick="openRecipeModal(\${r.id})">\${Icons.edit(14)}</button>
+                  <button class="admin-action-btn" onclick="duplicateRecipe(\${r.id})">\${Icons.copy(14)}</button>
+                  <button class="admin-action-btn danger" onclick="confirmDeleteRecipe(\${r.id})">\${Icons.trash(14)}</button>
+                </td>
+              </tr>
+            \`).join('')}
+          </tbody>
+        </table>
+      \`;
+    }
+
+    function filterRecipes() {
+      const q = (document.getElementById('recipe-search')?.value || '').toLowerCase();
+      const recipes = AdminStore.getRecipes().filter(r =>
+        r.title.toLowerCase().includes(q) ||
+        (r.author || '').toLowerCase().includes(q) ||
+        (r.category || '').toLowerCase().includes(q)
+      );
+      document.getElementById('recipes-table-wrapper').innerHTML = renderRecipesTable(recipes);
+    }
+
+    // ══════════════════════════════════════════════
+    //  RECIPE MODAL
+    // ══════════════════════════════════════════════
+    function openRecipeModal(id) {
+      editingRecipe = id ? AdminStore.getRecipes().find(r => r.id === id) : null;
+      const r = editingRecipe || {};
+      const isEdit = !!editingRecipe;
+      const ingredientsList = (r.ingredients || []).join('\\n');
+
+      document.getElementById('modal-container').innerHTML = \`
+        <div class="admin-modal-header">
+          <h2>\${Icons.recipe(22)} \${isEdit ? 'Editar Receita' : 'Nova Receita'}</h2>
+          <button class="admin-action-btn" onclick="closeModal()">\${Icons.close(18)}</button>
+        </div>
+        <div class="admin-modal-body">
+          <div class="admin-tabs" id="recipe-tabs">
+            <button class="admin-tab active" onclick="switchRecipeTab('info')">Informações</button>
+            <button class="admin-tab" onclick="switchRecipeTab('content')">Conteúdo</button>
+            <button class="admin-tab" onclick="switchRecipeTab('media')">Mídia</button>
+          </div>
+
+          <!-- Info Tab -->
+          <div id="recipe-tab-info">
+            <div class="admin-form-grid">
+              <div class="admin-form-group full">
+                <label>Título da Receita <span class="required">*</span></label>
+                <input type="text" id="r-title" value="\${r.title || ''}" placeholder="Ex: Salada Orgânica Colorida">
+              </div>
+              <div class="admin-form-group">
+                <label>Autor <span class="required">*</span></label>
+                <input type="text" id="r-author" value="\${r.author || ''}" placeholder="Ex: Chef Carolina">
+              </div>
+              <div class="admin-form-group">
+                <label>Tempo de Preparo</label>
+                <input type="text" id="r-time" value="\${r.time || ''}" placeholder="Ex: 30 min, 1h 15min">
+              </div>
+              <div class="admin-form-group">
+                <label>Dificuldade</label>
+                <select id="r-difficulty">
+                  \${DIFFICULTY_OPTIONS.map(d =>
+                    \`<option value="\${d}" \${r.difficulty === d ? 'selected' : ''}>\${d}</option>\`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label>Porções</label>
+                <input type="number" id="r-serves" value="\${r.serves || 4}" min="1">
+              </div>
+              <div class="admin-form-group">
+                <label>Categoria</label>
+                <select id="r-category">
+                  \${RECIPE_CATEGORY_OPTIONS.map(c =>
+                    \`<option value="\${c}" \${r.category === c ? 'selected' : ''}>\${c.charAt(0).toUpperCase() + c.slice(1)}</option>\`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label>Status</label>
+                <select id="r-status">
+                  <option value="active" \${(r.status||'active') === 'active' ? 'selected' : ''}>Ativo</option>
+                  <option value="draft" \${r.status === 'draft' ? 'selected' : ''}>Rascunho</option>
+                  <option value="inactive" \${r.status === 'inactive' ? 'selected' : ''}>Inativo</option>
+                </select>
+              </div>
+              <div class="admin-form-group full">
+                <label>Descrição</label>
+                <textarea id="r-description" rows="3" placeholder="Uma breve descrição da receita...">\${r.description || ''}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Content Tab -->
+          <div id="recipe-tab-content" style="display:none;">
+            <div class="admin-form-grid">
+              <div class="admin-form-group full">
+                <label>\${Icons.apple(14)} Ingredientes (um por linha)</label>
+                <textarea id="r-ingredients" rows="8" placeholder="Mix de folhas orgânicas\\nTomate cereja\\nCenoura\\nAzeite extra virgem...">\${ingredientsList}</textarea>
+                <span class="help-text">Adicione cada ingrediente em uma nova linha</span>
+              </div>
+              <div class="admin-form-group full">
+                <label>\${Icons.edit(14)} Modo de Preparo</label>
+                <textarea id="r-instructions" rows="10" placeholder="1. Lave e corte os vegetais...\\n2. Em uma panela...\\n3. Sirva quente...">\${r.instructions || ''}</textarea>
+                <span class="help-text">Descreva o passo a passo da receita</span>
+              </div>
+              <div class="admin-form-group full">
+                <label>\${Icons.copy(14)} Dicas e Notas</label>
+                <textarea id="r-tips" rows="3" placeholder="Dicas extras, substituições, variações...">\${r.tips || ''}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Media Tab -->
+          <div id="recipe-tab-media" style="display:none;">
+            <div class="admin-form-grid">
+              <div class="admin-form-group">
+                <label>Ícone</label>
+                <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
+                  \${ICON_OPTIONS.map(ic => \`
+                    <button type="button" class="admin-action-btn ricon-pick" data-icon="\${ic}" onclick="pickRecipeIcon('\${ic}')" style="\${(r.icon||'recipe') === ic ? 'border-color:var(--green-primary);background:var(--green-light);color:var(--green-dark);' : ''}">
+                      \${Icons[ic](18)}
+                    </button>
+                  \`).join('')}
+                </div>
+                <input type="hidden" id="r-icon" value="\${r.icon || 'recipe'}">
+              </div>
+              <div class="admin-form-group">
+                <label>Cor / Gradiente</label>
+                <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
+                  \${GRADIENT_OPTIONS.map(g => \`
+                    <button type="button" class="admin-action-btn rgrad-pick" data-gradient="\${g}" onclick="pickRecipeGradient('\${g}')" style="width:32px;height:32px;border-radius:50%;\${(r.gradient||'green') === g ? 'box-shadow:0 0 0 2px var(--green-primary);' : ''}">
+                      <div style="width:20px;height:20px;border-radius:50%;" class="img-placeholder \${g}"></div>
+                    </button>
+                  \`).join('')}
+                </div>
+                <input type="hidden" id="r-gradient" value="\${r.gradient || 'green'}">
+              </div>
+              <div class="admin-form-group full">
+                <label>Foto da Receita</label>
+                <div class="file-upload-area" onclick="showToast('Upload de imagens em breve!','upload')">
+                  \${Icons.upload(32)}
+                  <p>Clique para fazer upload</p>
+                  <span class="file-types">PNG, JPG, WEBP até 5MB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="admin-modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveRecipe()">
+            \${Icons.check(16)} \${isEdit ? 'Salvar Alterações' : 'Criar Receita'}
+          </button>
+        </div>
+      \`;
+      openModal();
+    }
+
+    function switchRecipeTab(tab) {
+      ['info','content','media'].forEach(t => {
+        document.getElementById('recipe-tab-' + t).style.display = t === tab ? 'block' : 'none';
+      });
+      document.querySelectorAll('#recipe-tabs .admin-tab').forEach((btn, i) => {
+        btn.classList.toggle('active', ['info','content','media'][i] === tab);
+      });
+    }
+
+    function pickRecipeIcon(icon) {
+      document.getElementById('r-icon').value = icon;
+      document.querySelectorAll('.ricon-pick').forEach(btn => {
+        const isActive = btn.dataset.icon === icon;
+        btn.style.borderColor = isActive ? 'var(--green-primary)' : '';
+        btn.style.background = isActive ? 'var(--green-light)' : '';
+        btn.style.color = isActive ? 'var(--green-dark)' : '';
+      });
+    }
+
+    function pickRecipeGradient(gradient) {
+      document.getElementById('r-gradient').value = gradient;
+      document.querySelectorAll('.rgrad-pick').forEach(btn => {
+        const isActive = btn.dataset.gradient === gradient;
+        btn.style.boxShadow = isActive ? '0 0 0 2px var(--green-primary)' : 'none';
+      });
+    }
+
+    function saveRecipe() {
+      const title = document.getElementById('r-title').value.trim();
+      const author = document.getElementById('r-author').value.trim();
+      if (!title) { showToast('Informe o título da receita!', 'close'); return; }
+      if (!author) { showToast('Informe o autor da receita!', 'close'); return; }
+
+      const ingredientsRaw = document.getElementById('r-ingredients').value.trim();
+      const ingredients = ingredientsRaw ? ingredientsRaw.split('\\n').map(s => s.trim()).filter(Boolean) : [];
+
+      const data = {
+        title,
+        author,
+        time: document.getElementById('r-time').value.trim(),
+        difficulty: document.getElementById('r-difficulty').value,
+        serves: parseInt(document.getElementById('r-serves').value) || 4,
+        category: document.getElementById('r-category').value,
+        status: document.getElementById('r-status').value,
+        description: document.getElementById('r-description').value.trim(),
+        ingredients,
+        instructions: document.getElementById('r-instructions')?.value.trim() || '',
+        tips: document.getElementById('r-tips')?.value.trim() || '',
+        icon: document.getElementById('r-icon').value,
+        gradient: document.getElementById('r-gradient').value,
+      };
+
+      if (editingRecipe) {
+        AdminStore.updateRecipe(editingRecipe.id, data);
+        showToast('Receita atualizada com sucesso!', 'check');
+      } else {
+        AdminStore.addRecipe(data);
+        showToast('Receita criada com sucesso!', 'check');
+      }
+      closeModal();
+      renderMain();
+    }
+
+    function confirmDeleteRecipe(id) {
+      const r = AdminStore.getRecipes().find(x => x.id === id);
+      if (!r) return;
+      if (confirm(\`Excluir "\${r.title}"? Esta ação não pode ser desfeita.\`)) {
+        AdminStore.deleteRecipe(id);
+        showToast('Receita excluída!', 'trash');
+        renderMain();
+      }
+    }
+
+    function duplicateRecipe(id) {
+      const r = AdminStore.getRecipes().find(x => x.id === id);
+      if (!r) return;
+      AdminStore.addRecipe({ ...r, title: r.title + ' (Cópia)', id: undefined, status: 'draft' });
+      showToast('Receita duplicada como rascunho!', 'copy');
+      renderMain();
+    }
+
+    // ══════════════════════════════════════════════
     //  ORDERS PAGE (placeholder)
     // ══════════════════════════════════════════════
     function renderOrdersPage(el) {
@@ -1174,7 +1501,248 @@
     }
 
     // ══════════════════════════════════════════════
-    //  MEMBERS PAGE (placeholder)
+    //  USERS MANAGEMENT PAGE
+    // ══════════════════════════════════════════════
+    function renderUsersPage(el) {
+      const users = AdminStore.getUsers();
+      el.innerHTML = `
+        <div class="admin-topbar">
+          <div>
+            <h1>Usuários</h1>
+            <p style="color:var(--text-muted);font-size:var(--font-size-sm);">${users.length} usuários cadastrados · ${users.filter(u => u.userRole === 'admin').length} admins</p>
+          </div>
+          <div class="admin-topbar-actions">
+            <div class="input-group" style="min-width:220px;">
+              <span class="input-icon">${Icons.search(16)}</span>
+              <input type="text" placeholder="Buscar usuário..." id="user-search" oninput="filterUsers()">
+            </div>
+            <select id="user-filter-role" onchange="filterUsers()" style="padding:var(--space-2) var(--space-4);border:1px solid var(--border-light);border-radius:var(--radius-full);background:var(--white);font-size:var(--font-size-sm);cursor:pointer;">
+              <option value="">Todos os perfis</option>
+              <option value="admin">Administradores</option>
+              <option value="user">Usuários</option>
+            </select>
+            <button class="btn btn-primary" onclick="openUserModal()">
+              ${Icons.plus(16)} Novo Usuário
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-table-wrapper" id="users-table-wrapper">
+          ${renderUsersTable(users)}
+        </div>
+      `;
+    }
+
+    function renderUsersTable(users) {
+      if (users.length === 0) {
+        return \`<div class="admin-empty">
+          \${Icons.users(48)}
+          <h3>Nenhum usuário cadastrado</h3>
+          <p>Adicione o primeiro usuário à plataforma.</p>
+          <button class="btn btn-primary" onclick="openUserModal()">\${Icons.plus(16)} Adicionar Usuário</button>
+        </div>\`;
+      }
+      return \`
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Usuário</th>
+              <th>E-mail</th>
+              <th>Função</th>
+              <th>Tipo</th>
+              <th>Localização</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            \${users.map(u => \`
+              <tr>
+                <td>
+                  <div class="td-product">
+                    <div style="width:36px;height:36px;border-radius:50%;background:\${u.userRole === 'admin' ? 'var(--green-primary)' : 'var(--green-light)'};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:var(--font-size-xs);color:\${u.userRole === 'admin' ? 'var(--white)' : 'var(--green-dark)'};">\${u.avatar || u.name.charAt(0)}</div>
+                    <div>
+                      <div class="td-name">\${u.name}</div>
+                      <div class="td-sub">Desde \${u.createdAt || '-'}</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="font-size:var(--font-size-sm);">\${u.email || '-'}</td>
+                <td style="font-size:var(--font-size-sm);">\${u.role || '-'}</td>
+                <td><span class="badge \${u.userRole === 'admin' ? 'badge-warning' : 'badge-green'}">\${u.userRole === 'admin' ? '🔒 Admin' : '👤 Usuário'}</span></td>
+                <td style="font-size:var(--font-size-sm);">\${u.location || '-'}</td>
+                <td><span class="status-badge \${u.status || 'active'}">\${u.status === 'blocked' ? 'Bloqueado' : u.status === 'inactive' ? 'Inativo' : 'Ativo'}</span></td>
+                <td class="td-actions">
+                  <button class="admin-action-btn" onclick="openUserModal(\${u.id})">\${Icons.edit(14)}</button>
+                  \${u.userRole !== 'admin' ? \`<button class="admin-action-btn danger" onclick="confirmDeleteUser(\${u.id})">\${Icons.trash(14)}</button>\` : ''}
+                </td>
+              </tr>
+            \`).join('')}
+          </tbody>
+        </table>
+      \`;
+    }
+
+    function filterUsers() {
+      const q = (document.getElementById('user-search')?.value || '').toLowerCase();
+      const roleFilter = document.getElementById('user-filter-role')?.value || '';
+      let users = AdminStore.getUsers();
+      if (q) {
+        users = users.filter(u =>
+          u.name.toLowerCase().includes(q) ||
+          (u.email || '').toLowerCase().includes(q) ||
+          (u.role || '').toLowerCase().includes(q) ||
+          (u.location || '').toLowerCase().includes(q)
+        );
+      }
+      if (roleFilter) {
+        users = users.filter(u => u.userRole === roleFilter);
+      }
+      document.getElementById('users-table-wrapper').innerHTML = renderUsersTable(users);
+    }
+
+    // ══════════════════════════════════════════════
+    //  USER MODAL
+    // ══════════════════════════════════════════════
+    function openUserModal(id) {
+      editingUser = id ? AdminStore.getUsers().find(u => u.id === id) : null;
+      const u = editingUser || {};
+      const isEdit = !!editingUser;
+
+      document.getElementById('modal-container').innerHTML = \`
+        <div class="admin-modal-header">
+          <h2>\${Icons.profile(22)} \${isEdit ? 'Editar Usuário' : 'Novo Usuário'}</h2>
+          <button class="admin-action-btn" onclick="closeModal()">\${Icons.close(18)}</button>
+        </div>
+        <div class="admin-modal-body">
+          <div class="admin-form-grid">
+            <div class="admin-form-group">
+              <label>Nome Completo <span class="required">*</span></label>
+              <input type="text" id="u-name" value="\${u.name || ''}" placeholder="Nome do usuário">
+            </div>
+            <div class="admin-form-group">
+              <label>E-mail <span class="required">*</span></label>
+              <input type="email" id="u-email" value="\${u.email || ''}" placeholder="email@exemplo.com">
+            </div>
+            <div class="admin-form-group">
+              <label>Função / Cargo</label>
+              <input type="text" id="u-role" value="\${u.role || ''}" placeholder="Ex: Produtor, Educador...">
+            </div>
+            <div class="admin-form-group">
+              <label>Localização</label>
+              <input type="text" id="u-location" value="\${u.location || ''}" placeholder="Ex: Campinas-SP">
+            </div>
+            <div class="admin-form-group">
+              <label>Iniciais do Avatar</label>
+              <input type="text" id="u-avatar" value="\${u.avatar || ''}" placeholder="Ex: MS" maxlength="3">
+            </div>
+            <div class="admin-form-group">
+              <label>Tipo de Perfil</label>
+              <select id="u-userRole">
+                <option value="user" \${(u.userRole||'user') === 'user' ? 'selected' : ''}>Usuário</option>
+                <option value="admin" \${u.userRole === 'admin' ? 'selected' : ''}>Administrador</option>
+              </select>
+            </div>
+            <div class="admin-form-group">
+              <label>Categoria</label>
+              <select id="u-category">
+                \${USER_CATEGORY_OPTIONS.map(c =>
+                  \`<option value="\${c}" \${u.category === c ? 'selected' : ''}>\${c.charAt(0).toUpperCase() + c.slice(1)}</option>\`
+                ).join('')}
+              </select>
+            </div>
+            <div class="admin-form-group">
+              <label>Status</label>
+              <select id="u-status">
+                <option value="active" \${(u.status||'active') === 'active' ? 'selected' : ''}>Ativo</option>
+                <option value="inactive" \${u.status === 'inactive' ? 'selected' : ''}>Inativo</option>
+                <option value="blocked" \${u.status === 'blocked' ? 'selected' : ''}>Bloqueado</option>
+              </select>
+            </div>
+            <div class="admin-form-group full">
+              <label>Bio / Descrição</label>
+              <textarea id="u-bio" rows="3" placeholder="Breve descrição do usuário...">\${u.bio || ''}</textarea>
+            </div>
+            <div class="admin-form-group full">
+              <label>Especialidades (separadas por vírgula)</label>
+              <input type="text" id="u-specialties" value="\${(u.specialties || []).join(', ')}" placeholder="Ex: Hortaliças, Educação Ambiental, Mel...">
+            </div>
+            \${!isEdit ? \`
+            <div class="admin-form-group">
+              <label>Senha Inicial</label>
+              <input type="password" id="u-password" placeholder="Mínimo 8 caracteres" minlength="8">
+            </div>
+            \` : ''}
+          </div>
+        </div>
+        <div class="admin-modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveUser()">
+            \${Icons.check(16)} \${isEdit ? 'Salvar Alterações' : 'Criar Usuário'}
+          </button>
+        </div>
+      \`;
+      openModal();
+    }
+
+    function saveUser() {
+      const name = document.getElementById('u-name').value.trim();
+      const email = document.getElementById('u-email').value.trim();
+      if (!name) { showToast('Informe o nome do usuário!', 'close'); return; }
+      if (!email) { showToast('Informe o e-mail!', 'close'); return; }
+
+      const specialtiesRaw = document.getElementById('u-specialties').value.trim();
+      const specialties = specialtiesRaw ? specialtiesRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+      const data = {
+        name,
+        email,
+        role: document.getElementById('u-role').value.trim(),
+        location: document.getElementById('u-location').value.trim(),
+        avatar: document.getElementById('u-avatar').value.trim() || name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase(),
+        userRole: document.getElementById('u-userRole').value,
+        category: document.getElementById('u-category').value,
+        status: document.getElementById('u-status').value,
+        bio: document.getElementById('u-bio').value.trim(),
+        specialties,
+      };
+
+      if (editingUser) {
+        AdminStore.updateUser(editingUser.id, data);
+        showToast('Usuário atualizado com sucesso!', 'check');
+      } else {
+        AdminStore.addUser(data);
+        showToast('Usuário criado com sucesso!', 'check');
+      }
+      closeModal();
+      renderMain();
+    }
+
+    function confirmDeleteUser(id) {
+      const u = AdminStore.getUsers().find(x => x.id === id);
+      if (!u) return;
+      if (u.userRole === 'admin') {
+        showToast('Não é possível excluir administradores!', 'close');
+        return;
+      }
+      if (confirm(\`Excluir o usuário "\${u.name}"? Esta ação não pode ser desfeita.\`)) {
+        AdminStore.deleteUser(id);
+        showToast('Usuário excluído!', 'trash');
+        renderMain();
+      }
+    }
+
+    function toggleUserStatus(id) {
+      const u = AdminStore.getUsers().find(x => x.id === id);
+      if (!u) return;
+      const newStatus = u.status === 'active' ? 'blocked' : 'active';
+      AdminStore.updateUser(id, { status: newStatus });
+      showToast(\`Usuário \${newStatus === 'active' ? 'ativado' : 'bloqueado'}!\`, newStatus === 'active' ? 'check' : 'lock');
+      renderMain();
+    }
+
+    // ══════════════════════════════════════════════
+    //  MEMBERS PAGE (read-only view)
     // ══════════════════════════════════════════════
     function renderMembersPage(el) {
       const members = window.MEMBERS || [];
@@ -1221,6 +1789,8 @@
       document.body.style.overflow = '';
       editingProduct = null;
       editingCourse = null;
+      editingRecipe = null;
+      editingUser = null;
       window._tempSections = null;
     }
 

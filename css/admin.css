@@ -673,6 +673,11 @@
   color: var(--text-muted);
 }
 
+.status-badge.blocked {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
 /* ── Tabs for modal ── */
 .admin-tabs {
   display: flex;
