@@ -58,7 +58,7 @@ function renderCourses() {
       </a>
       <div class="course-card-body">
         <h4>${c.title}</h4>
-        <p style="font-size:var(--font-size-sm);color:var(--text-muted);margin-bottom:var(--space-3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${c.description}</p>
+        <p style="font-size:var(--font-size-sm);color:var(--text-muted);margin-bottom:var(--space-3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${c.description}</p>
         <div class="course-meta">
           <span data-tooltip="Duração">${Icons.clock(14)} ${c.duration}</span>
           <span data-tooltip="Alunos matriculados">${Icons.users(14)} ${c.students.toLocaleString()}</span>
